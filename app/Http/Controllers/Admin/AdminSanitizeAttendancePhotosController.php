@@ -106,7 +106,7 @@ class AdminSanitizeAttendancePhotosController extends Controller
             'candidate_count' => $candidateCount,
             'cutoff_date' => $cutoffDate,
             'remaining_days' => $nextAllowedAt && $now->lt($nextAllowedAt)
-                ? $now->diffInDays($nextAllowedAt)
+                ? (int) $now->diffInDays($nextAllowedAt)
                 : 0,
         ];
     }
