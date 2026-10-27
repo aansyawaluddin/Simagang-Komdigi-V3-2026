@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Channel;
 use App\Models\FinalReport;
 use App\Models\Logbook;
+use App\Models\Message;
 use App\Models\MicroSkillSubmission;
 use App\Models\Task;
 use App\Models\TaskTemplate;
@@ -14,6 +15,7 @@ use App\Models\Workspace;
 use App\Policies\AttachmentPolicy;
 use App\Policies\AttendancePolicy;
 use App\Policies\ChannelPolicy;
+use App\Policies\MessagePolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TaskTemplatePolicy;
 use App\Policies\WorkspacePolicy;
@@ -36,6 +38,7 @@ class AuthServiceProvider extends ServiceProvider
         Task::class => TaskPolicy::class,
         TaskTemplate::class => TaskTemplatePolicy::class,
         Channel::class => ChannelPolicy::class,
+        Message::class => MessagePolicy::class,
         Attachment::class => AttachmentPolicy::class,
     ];
 

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Workspace\AttachmentController;
+use App\Http\Controllers\Workspace\ChannelController;
+use App\Http\Controllers\Workspace\MessageController;
 use App\Http\Controllers\Workspace\TaskCommentController;
 use App\Http\Controllers\Workspace\TaskController;
 use App\Http\Controllers\Workspace\TaskTemplateController;
@@ -30,9 +32,26 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
         Route::patch('checklist/{item}', [TaskController::class, 'toggleChecklistItem'])->whereNumber('item')->name('tasks.checklist');
         Route::post('template', [TaskTemplateController::class, 'storeFromTask'])->name('tasks.save-template');
 
-        // Komentar dan lampiran: batas 10 permintaan unggah per menit per user
-        Route::post('comments', [TaskCommentController::class, 'store'])->middleware('throttle:10,1')->name('tasks.comments.store');
-        Route::post('attachments', [AttachmentController::class, 'store'])->middleware('throttle:10,1')->name('tasks.attachments.store');
+        // Komentar dan lampiran (batas unggah 10 file per menit dicek di AttachmentService)
+        Route::post('comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+        Route::post('attachments', [AttachmentController::class, 'store'])->name('tasks.attachments.store');
+    });
+
+    // Channel dan pesan
+    Route::get('channels', [ChannelController::class, 'index'])->name('channels.index');
+    Route::post('{workspace}/channels', [ChannelController::class, 'store'])->whereNumber('workspace')->name('channels.store');
+
+    Route::prefix('channels/{channel}')->whereNumber('channel')->group(function () {
+        Route::get('messages', [MessageController::class, 'index'])->name('channels.messages.index');
+        Route::post('messages', [MessageController::class, 'store'])->middleware('throttle:workspace-messages')->name('channels.messages.store');
+        Route::post('read', [ChannelController::class, 'markRead'])->name('channels.read');
+        Route::patch('archive', [ChannelController::class, 'archive'])->name('channels.archive');
+    });
+
+    Route::prefix('messages/{message}')->whereNumber('message')->group(function () {
+        Route::patch('/', [MessageController::class, 'update'])->middleware('throttle:workspace-messages')->name('messages.update');
+        Route::delete('/', [MessageController::class, 'destroy'])->name('messages.destroy');
+        Route::patch('pin', [MessageController::class, 'pin'])->name('messages.pin');
     });
 
     // Unduh lampiran (storage private, dicek Policy)
