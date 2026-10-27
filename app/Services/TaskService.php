@@ -4,21 +4,16 @@ namespace App\Services;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
-use App\Models\Attachment;
 use App\Models\Intern;
 use App\Models\Task;
 use App\Models\TaskActivity;
 use App\Models\TaskLabel;
 use App\Models\User;
 use App\Models\Workspace;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class TaskService
 {
-    public const ATTACHMENT_DISK = 'local';
-
     /** Membuat tugas beserta assignee, label, checklist, dan catatan aktivitas. */
     public function create(Workspace $workspace, User $creator, array $data, array $internIds, array $extraMeta = []): Task
     {
@@ -165,27 +160,6 @@ class TaskService
                 'position' => $i,
             ]);
         }
-    }
-
-    /** @param  array<int, UploadedFile>  $files */
-    public function storeAttachments(Model $attachable, array $files, User $user): array
-    {
-        $saved = [];
-
-        foreach ($files as $file) {
-            $saved[] = Attachment::create([
-                'attachable_type' => $attachable->getMorphClass(),
-                'attachable_id' => $attachable->getKey(),
-                'user_id' => $user->id,
-                'disk' => self::ATTACHMENT_DISK,
-                'path' => $file->store('workspace/attachments/' . now()->format('Y/m'), self::ATTACHMENT_DISK),
-                'original_name' => mb_substr(basename($file->getClientOriginalName()), 0, 255),
-                'mime' => $file->getMimeType(),
-                'size' => $file->getSize(),
-            ]);
-        }
-
-        return $saved;
     }
 
     private function labelTeamId(Workspace $workspace): ?int

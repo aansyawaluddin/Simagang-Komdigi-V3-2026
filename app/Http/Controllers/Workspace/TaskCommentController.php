@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Workspace;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
+use App\Services\AttachmentService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class TaskCommentController extends Controller
 {
-    public function __construct(private TaskService $tasks)
+    public function __construct(private TaskService $tasks, private AttachmentService $attachments)
     {
     }
 
@@ -32,7 +33,7 @@ class TaskCommentController extends Controller
             ]);
 
             if ($request->hasFile('files')) {
-                $this->tasks->storeAttachments($comment, $request->file('files'), $request->user());
+                $this->attachments->store($comment, $request->file('files'), $request->user());
             }
 
             $this->tasks->record($task, $request->user(), 'commented', ['comment_id' => $comment->id]);

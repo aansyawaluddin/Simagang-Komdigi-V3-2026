@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Attachment;
 use App\Models\Task;
+use App\Services\AttachmentService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class AttachmentController extends Controller
     /** PDF, DOC/DOCX, XLS/XLSX, PNG/JPG, ZIP, maksimal 10 MB per file. */
     public const FILE_RULES = ['file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,zip'];
 
-    public function __construct(private TaskService $tasks)
+    public function __construct(private TaskService $tasks, private AttachmentService $attachments)
     {
     }
 
@@ -30,7 +31,7 @@ class AttachmentController extends Controller
             'files.*' => self::FILE_RULES,
         ]);
 
-        $saved = $this->tasks->storeAttachments($task, $request->file('files'), $request->user());
+        $saved = $this->attachments->store($task, $request->file('files'), $request->user());
 
         $this->tasks->record($task, $request->user(), 'attachment_added', [
             'files' => array_map(fn (Attachment $a) => $a->original_name, $saved),
