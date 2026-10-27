@@ -36,6 +36,33 @@ class MessageService
             return $members->pluck('id')->reject(fn ($id) => $id === $author->id)->values()->all();
         }
 
+        return $this->matchMentions($members, $author, $body, $explicitIds);
+    }
+
+    /**
+     * User yang disebut @nama di komentar tugas: anggota aktif workspace tugas itu.
+     *
+     * @return array<int, int>
+     */
+    public function resolveTaskMentionIds(Task $task, User $author, string $body): array
+    {
+        $members = User::query()
+            ->select('users.id', 'users.name')
+            ->join('workspace_members', 'workspace_members.user_id', '=', 'users.id')
+            ->where('workspace_members.workspace_id', $task->workspace_id)
+            ->whereNull('workspace_members.left_at')
+            ->get();
+
+        return $this->matchMentions($members, $author, $body, []);
+    }
+
+    /**
+     * @param  Collection<int, User>  $members
+     * @param  array<int, int>  $explicitIds
+     * @return array<int, int>
+     */
+    private function matchMentions(Collection $members, User $author, string $body, array $explicitIds): array
+    {
         $ids = [];
         $remaining = $body;
 

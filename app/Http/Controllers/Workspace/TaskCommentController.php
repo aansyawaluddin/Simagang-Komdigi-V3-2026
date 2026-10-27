@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Services\AttachmentService;
+use App\Services\MessageService;
+use App\Services\TaskNotifier;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,8 +14,12 @@ use Illuminate\Support\Facades\DB;
 
 class TaskCommentController extends Controller
 {
-    public function __construct(private TaskService $tasks, private AttachmentService $attachments)
-    {
+    public function __construct(
+        private TaskService $tasks,
+        private AttachmentService $attachments,
+        private MessageService $messages,
+        private TaskNotifier $notifier,
+    ) {
     }
 
     public function store(Request $request, Task $task): JsonResponse
@@ -26,27 +32,35 @@ class TaskCommentController extends Controller
             'files.*' => AttachmentController::FILE_RULES,
         ]);
 
-        $comment = DB::transaction(function () use ($request, $task, $data) {
+        $user = $request->user();
+
+        $comment = DB::transaction(function () use ($request, $task, $data, $user) {
             $comment = $task->comments()->create([
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'body' => $data['body'],
             ]);
 
             if ($request->hasFile('files')) {
-                $this->attachments->store($comment, $request->file('files'), $request->user());
+                $this->attachments->store($comment, $request->file('files'), $user);
             }
 
-            $this->tasks->record($task, $request->user(), 'commented', ['comment_id' => $comment->id]);
+            $this->tasks->record($task, $user, 'commented', ['comment_id' => $comment->id]);
 
             return $comment;
         });
 
-        $comment->load(['user', 'attachments']);
+        // Mention @nama mendapat notifikasi khusus; penerima lain mendapat notifikasi komentar baru.
+        $mentionedIds = $this->messages->resolveTaskMentionIds($task, $user, $data['body']);
+        $comment->setRelation('user', $user);
+        $this->notifier->mentionedInComment($task, $comment, $mentionedIds);
+        $this->notifier->commented($task, $comment, $mentionedIds);
+
+        $comment->load('attachments');
 
         return response()->json([
             'id' => $comment->id,
             'body' => $comment->body,
-            'user' => ['id' => $comment->user->id, 'name' => $comment->user->name],
+            'user' => ['id' => $user->id, 'name' => $user->name],
             'attachments' => $comment->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'name' => $a->original_name,

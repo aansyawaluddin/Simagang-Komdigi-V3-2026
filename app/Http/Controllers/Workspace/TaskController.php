@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskChecklistItem;
 use App\Models\TaskTemplate;
 use App\Models\Workspace;
+use App\Services\TaskNotifier;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class TaskController extends Controller
 
     private const RELATIONS = ['assignees', 'labels', 'checklistItems', 'creator'];
 
-    public function __construct(private TaskService $tasks)
+    public function __construct(private TaskService $tasks, private TaskNotifier $notifier)
     {
     }
 
@@ -113,7 +114,10 @@ class TaskController extends Controller
             );
         });
 
-        $created->each(fn (Task $task) => $task->load(self::RELATIONS));
+        $created->each(function (Task $task) use ($user) {
+            $task->load(self::RELATIONS);
+            $this->notifier->assigned($task, $task->assignees->pluck('id')->all(), $user);
+        });
 
         return TaskResource::collection($created)->response()->setStatusCode(201);
     }
@@ -157,7 +161,9 @@ class TaskController extends Controller
             unset($data['assignee_ids']);
         }
 
-        DB::transaction(function () use ($task, $data, $request) {
+        $addedInternIds = [];
+
+        DB::transaction(function () use ($task, $data, $request, &$addedInternIds) {
             $task->fill(collect($data)->only(['title', 'description', 'priority', 'start_at', 'due_at', 'result_link'])->all());
 
             // Deadline diperpanjang: penanda terlambat dan pengingat boleh berlaku lagi.
@@ -172,6 +178,8 @@ class TaskController extends Controller
             if (isset($data['assignee_ids'])) {
                 $ids = $this->resolveAssignees($request, $task->workspace, $data['assignee_ids']);
                 $diff = $task->assignees()->sync($ids);
+
+                $addedInternIds = $diff['attached'];
 
                 if ($diff['attached'] || $diff['detached']) {
                     $this->tasks->record($task, $request->user(), 'assignees_changed', [
@@ -195,6 +203,10 @@ class TaskController extends Controller
             }
         });
 
+        if ($addedInternIds) {
+            $this->notifier->assigned($task, $addedInternIds, $request->user());
+        }
+
         return new TaskResource($task->fresh([...self::RELATIONS]));
     }
 
@@ -211,6 +223,8 @@ class TaskController extends Controller
 
         $this->authorize('updateStatus', [$task, $to]);
 
+        $from = $task->status;
+
         DB::transaction(function () use ($request, $task, $to, $data) {
             if (! empty($data['result_link'])) {
                 $task->result_link = $data['result_link'];
@@ -218,6 +232,10 @@ class TaskController extends Controller
 
             $this->tasks->move($task, $to, $data['position'] ?? null, $request->user());
         });
+
+        if ($to === TaskStatus::Review && $from !== TaskStatus::Review) {
+            $this->notifier->reviewRequested($task, $request->user());
+        }
 
         return new TaskResource($task->fresh(self::RELATIONS));
     }
@@ -251,6 +269,8 @@ class TaskController extends Controller
                 'feedback' => $task->feedback,
             ]);
         });
+
+        $this->notifier->reviewed($task, $request->user());
 
         return new TaskResource($task->fresh(self::RELATIONS));
     }

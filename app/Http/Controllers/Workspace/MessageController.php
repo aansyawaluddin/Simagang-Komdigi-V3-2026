@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Notifications\AnnouncementNotification;
 use App\Services\AttachmentService;
 use App\Services\MessageService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class MessageController extends Controller
@@ -119,6 +121,16 @@ class MessageController extends Controller
 
             return $message;
         });
+
+        // Pengumuman baru: semua anggota channel kecuali penulis dan yang sudah di-mention.
+        if ($channel->type === 'announcement' && ! $message->parent_id) {
+            $mentioned = $message->mentions()->pluck('users.id');
+
+            Notification::send(
+                $channel->members()->where('users.id', '!=', $user->id)->whereNotIn('users.id', $mentioned)->get(),
+                new AnnouncementNotification($message->setRelation('user', $user))
+            );
+        }
 
         return $this->respond($channel, $message, 201);
     }
