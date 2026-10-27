@@ -23,6 +23,8 @@ class Task extends Model
         'start_at',
         'due_at',
         'completed_at',
+        'overdue_at',
+        'reminded_at',
         'position',
         'score',
         'feedback',
@@ -36,6 +38,8 @@ class Task extends Model
         'start_at' => 'datetime',
         'due_at' => 'datetime',
         'completed_at' => 'datetime',
+        'overdue_at' => 'datetime',
+        'reminded_at' => 'datetime',
     ];
 
     /** Kode tugas yang dirujuk di chat, misalnya T-12. */

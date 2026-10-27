@@ -15,6 +15,10 @@ class Kernel extends ConsoleKernel
             ->dailyAt('12:05')
             ->timezone('Asia/Makassar');
 
+        $schedule->command('workspace:check-deadlines')
+            ->hourly()
+            ->timezone('Asia/Makassar');
+
         $schedule->command('workspace:archive-expired')
             ->dailyAt('00:10')
             ->timezone('Asia/Makassar');
