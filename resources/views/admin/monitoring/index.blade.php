@@ -352,6 +352,7 @@
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Kampus</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Mentor</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Tugas</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Tgl Mulai</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Tgl Rencana Pelepasan</th>
                                     <th class="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider rounded-tr-lg">Aksi</th>
@@ -388,6 +389,17 @@
                                             <td class="px-6 py-4 text-sm text-gray-600">{{ $intern->institution }}</td>
                                             <td class="px-6 py-4 text-sm text-gray-600">
                                                 {{ $intern->mentor ? $intern->mentor->name : '-' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                @php($progress = $taskProgress[$intern->id] ?? null)
+                                                @if ($progress)
+                                                    <span class="font-semibold text-gray-900">{{ $progress['done'] }}/{{ $progress['total'] }}</span> selesai
+                                                    @if ($progress['overdue'] > 0)
+                                                        <span class="ml-1 px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">{{ $progress['overdue'] }} terlambat</span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-gray-400">-</span>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {{ \Carbon\Carbon::parse($intern->start_date)->locale('id')->translatedFormat('d F Y') }}
@@ -431,7 +443,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="8" class="px-6 py-12 text-center">
+                                        <td colspan="9" class="px-6 py-12 text-center">
                                             <div class="flex flex-col items-center justify-center text-gray-500">
                                                 <i class="fas fa-inbox text-5xl mb-3 text-gray-300"></i>
                                                 <p class="text-lg">Tidak ada data yang sesuai dengan filter Anda.</p>
