@@ -21,7 +21,7 @@ class MessageMentionNotification extends Notification
         $channel = $this->message->channel;
 
         return [
-            'message' => "{$this->message->user->name} menyebut kamu di #{$channel->name}",
+            'message' => "{$this->message->user?->name} menyebut kamu di #{$channel->name}",
             'channel_id' => $channel->id,
             'workspace_id' => $channel->workspace_id,
             'message_id' => $this->message->id,

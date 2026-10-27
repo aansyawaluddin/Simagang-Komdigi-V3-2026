@@ -20,7 +20,7 @@ class TaskCommentMentionNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'message' => "{$this->comment->user->name} menyebut kamu di komentar {$this->task->code} \"{$this->task->title}\"",
+            'message' => "{$this->comment->user?->name} menyebut kamu di komentar {$this->task->code} \"{$this->task->title}\"",
             'task_id' => $this->task->id,
             'workspace_id' => $this->task->workspace_id,
             'comment_id' => $this->comment->id,

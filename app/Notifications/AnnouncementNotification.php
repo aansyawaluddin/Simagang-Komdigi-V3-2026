@@ -24,7 +24,7 @@ class AnnouncementNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
-            'message' => "Pengumuman baru dari {$this->message->user->name}: " . \Illuminate\Support\Str::limit($this->message->body, 80),
+            'message' => "Pengumuman baru dari {$this->message->user?->name}: " . \Illuminate\Support\Str::limit($this->message->body, 80),
             'channel_id' => $this->message->channel_id,
             'message_id' => $this->message->id,
         ];

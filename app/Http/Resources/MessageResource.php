@@ -26,7 +26,11 @@ class MessageResource extends JsonResource
             'is_pinned' => ! $deleted && $this->is_pinned,
             'edited_at' => $deleted ? null : $this->edited_at,
             'created_at' => $this->created_at,
-            'user' => $this->whenLoaded('user', fn () => ['id' => $this->user->id, 'name' => $this->user->name]),
+            // whenLoaded() mengembalikan null mentah jika relasinya kosong, jadi dicek eksplisit agar penulis terhapus tetap punya nama.
+            'user' => $this->when($this->resource->relationLoaded('user'), fn () => [
+                'id' => $this->user?->id,
+                'name' => $this->user?->name ?? 'Pengguna dihapus',
+            ]),
             'mentions' => $deleted ? [] : $this->whenLoaded('mentions', fn () => $this->mentions->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])),
             'attachments' => $deleted ? [] : $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($a) => [
                 'id' => $a->id,

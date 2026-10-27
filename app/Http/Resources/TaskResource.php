@@ -50,7 +50,7 @@ class TaskResource extends JsonResource
             'comments' => $this->whenLoaded('comments', fn () => $this->comments->map(fn ($c) => [
                 'id' => $c->id,
                 'body' => $c->body,
-                'user' => ['id' => $c->user?->id, 'name' => $c->user?->name],
+                'user' => ['id' => $c->user?->id, 'name' => $c->user?->name ?? 'Pengguna dihapus'],
                 'created_at' => $c->created_at,
             ])),
             'activities' => $this->whenLoaded('activities', fn () => $this->activities->map(fn ($a) => [

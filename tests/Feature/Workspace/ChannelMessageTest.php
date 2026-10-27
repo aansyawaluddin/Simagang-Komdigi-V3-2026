@@ -356,4 +356,24 @@ class ChannelMessageTest extends TestCase
         // batas per user, bukan global
         $this->sendMessage($this->rudy->user, $this->umumGta, 'user lain tetap bisa')->assertCreated();
     }
+
+    public function test_pesan_dari_user_yang_sudah_dihapus_tetap_tampil_tanpa_error(): void
+    {
+        $mentioned = $this->sendMessage($this->ahmad->user, $this->umumGta, 'Pesan lama Ahmad')->json('data.id');
+        $this->sendMessage($this->siti->user, $this->umumGta, 'Balasan', ['parent_id' => $mentioned]);
+
+        $this->ahmad->delete();
+        $this->ahmad->user->delete();
+
+        $response = $this->actingAs($this->rudy->user)->getJson("/workspace/channels/{$this->umumGta->id}/messages")->assertOk();
+        $item = collect($response->json('data'))->firstWhere('id', $mentioned);
+
+        $this->assertSame('Pesan lama Ahmad', $item['body']);
+        $this->assertSame('Pengguna dihapus', $item['user']['name']);
+        $this->assertSame(1, $item['replies_count'], 'thread tetap utuh');
+        $this->assertNull(Message::find($mentioned)->user_id);
+
+        // pesan itu tidak bisa diedit siapa pun
+        $this->actingAs($this->rudy->user)->patchJson("/workspace/messages/{$mentioned}", ['body' => 'x'])->assertForbidden();
+    }
 }
