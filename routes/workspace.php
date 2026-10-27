@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Workspace\AttachmentController;
 use App\Http\Controllers\Workspace\ChannelController;
+use App\Http\Controllers\Workspace\DashboardController;
 use App\Http\Controllers\Workspace\MessageController;
+use App\Http\Controllers\Workspace\NotificationController;
 use App\Http\Controllers\Workspace\TaskCommentController;
 use App\Http\Controllers\Workspace\TaskController;
 use App\Http\Controllers\Workspace\TaskTemplateController;
@@ -13,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 | pembatasan akses lewat Policy, bukan prefix route per role.
 */
 Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(function () {
+    // Ringkasan untuk dashboard (intern / mentor / admin)
+    Route::get('dashboard', [DashboardController::class, 'summary'])->name('dashboard');
+
     // Template tugas (onboarding dan assign massal)
     Route::get('templates', [TaskTemplateController::class, 'index'])->name('templates.index');
     Route::post('templates', [TaskTemplateController::class, 'store'])->name('templates.store');
@@ -56,4 +61,11 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
 
     // Unduh lampiran (storage private, dicek Policy)
     Route::get('attachments/{attachment}', [AttachmentController::class, 'download'])->whereNumber('attachment')->name('attachments.download');
+});
+
+// Lonceng notifikasi in-app (semua role yang login)
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::post('read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+    Route::post('{id}/read', [NotificationController::class, 'markRead'])->name('read');
 });

@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\Message;
-use App\Models\User;
 use App\Models\Workspace;
+use App\Services\ChannelUnreadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class ChannelController extends Controller
 {
+    public function __construct(private ChannelUnreadService $unread)
+    {
+    }
+
     /**
      * Channel milik user beserta jumlah pesan belum dibaca (untuk badge dan polling).
      * Admin yang memberi ?workspace_id= melihat semua channel workspace itu.
@@ -43,7 +47,7 @@ class ChannelController extends Controller
             ->filter(fn (Channel $c) => Gate::forUser($user)->allows('view', $c))
             ->values();
 
-        $unread = $this->unreadCounts($user, $channels->pluck('id')->all());
+        $unread = $this->unread->counts($user, $channels->pluck('id')->all());
 
         $data = $channels->map(fn (Channel $c) => [
             'id' => $c->id,
@@ -147,33 +151,7 @@ class ChannelController extends Controller
         }
 
         return response()->json([
-            'unread_count' => (int) ($this->unreadCounts($user, [$channel->id])[$channel->id] ?? 0),
+            'unread_count' => (int) ($this->unread->counts($user, [$channel->id])[$channel->id] ?? 0),
         ]);
-    }
-
-    /**
-     * Pesan lain yang belum dibaca per channel, dihitung dari last_read_message_id.
-     *
-     * @param  array<int, int>  $channelIds
-     * @return array<int, int>  channel_id => jumlah
-     */
-    private function unreadCounts(User $user, array $channelIds): array
-    {
-        if (! $channelIds) {
-            return [];
-        }
-
-        return DB::table('messages')
-            ->selectRaw('channel_id, count(*) as total')
-            ->whereIn('channel_id', $channelIds)
-            ->whereNull('deleted_at')
-            ->where('user_id', '!=', $user->id)
-            ->whereRaw(
-                'id > coalesce((select cm.last_read_message_id from channel_members cm where cm.channel_id = messages.channel_id and cm.user_id = ?), 0)',
-                [$user->id]
-            )
-            ->groupBy('channel_id')
-            ->pluck('total', 'channel_id')
-            ->all();
     }
 }
