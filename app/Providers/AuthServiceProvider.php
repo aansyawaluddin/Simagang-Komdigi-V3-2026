@@ -2,11 +2,19 @@
 
 namespace App\Providers;
 
+use App\Models\Attachment;
 use App\Models\Attendance;
+use App\Models\Channel;
 use App\Models\FinalReport;
 use App\Models\Logbook;
 use App\Models\MicroSkillSubmission;
+use App\Models\Task;
+use App\Models\Workspace;
+use App\Policies\AttachmentPolicy;
 use App\Policies\AttendancePolicy;
+use App\Policies\ChannelPolicy;
+use App\Policies\TaskPolicy;
+use App\Policies\WorkspacePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
@@ -22,6 +30,10 @@ class AuthServiceProvider extends ServiceProvider
         Logbook::class => 'App\\Policies\\LogbookPolicy',
         MicroSkillSubmission::class => 'App\\Policies\\MicroSkillSubmissionPolicy',
         FinalReport::class => 'App\\Policies\\FinalReportPolicy',
+        Workspace::class => WorkspacePolicy::class,
+        Task::class => TaskPolicy::class,
+        Channel::class => ChannelPolicy::class,
+        Attachment::class => AttachmentPolicy::class,
     ];
 
     /**
