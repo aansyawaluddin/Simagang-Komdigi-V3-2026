@@ -1,0 +1,201 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\TaskPriority;
+use App\Enums\TaskStatus;
+use App\Models\Attachment;
+use App\Models\Intern;
+use App\Models\Task;
+use App\Models\TaskActivity;
+use App\Models\TaskLabel;
+use App\Models\User;
+use App\Models\Workspace;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+
+class TaskService
+{
+    public const ATTACHMENT_DISK = 'local';
+
+    /** Membuat tugas beserta assignee, label, checklist, dan catatan aktivitas. */
+    public function create(Workspace $workspace, User $creator, array $data, array $internIds, array $extraMeta = []): Task
+    {
+        return DB::transaction(function () use ($workspace, $creator, $data, $internIds, $extraMeta) {
+            // Kunci baris workspace supaya nomor tugas (T-12) dan posisi tidak bentrok.
+            Workspace::whereKey($workspace->id)->lockForUpdate()->first();
+
+            $number = (int) Task::withTrashed()->where('workspace_id', $workspace->id)->max('number') + 1;
+            $position = (int) Task::where('workspace_id', $workspace->id)
+                ->where('status', TaskStatus::Todo->value)
+                ->max('position') + 1;
+
+            $task = Task::create([
+                'workspace_id' => $workspace->id,
+                'number' => $number,
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'status' => TaskStatus::Todo,
+                'priority' => $data['priority'] ?? TaskPriority::Medium,
+                'created_by' => $creator->id,
+                'start_at' => $data['start_at'] ?? null,
+                'due_at' => $data['due_at'],
+                'position' => $position,
+                'template_id' => $data['template_id'] ?? null,
+            ]);
+
+            $task->assignees()->sync($internIds);
+            $this->syncLabels($task, $data['labels'] ?? []);
+            $this->replaceChecklist($task, $data['checklist'] ?? []);
+
+            $this->record($task, $creator, 'created', $extraMeta + ['assignee_ids' => array_values($internIds)]);
+
+            return $task;
+        });
+    }
+
+    public function record(Task $task, ?User $user, string $action, array $meta = []): TaskActivity
+    {
+        return TaskActivity::create([
+            'task_id' => $task->id,
+            'user_id' => $user?->id,
+            'action' => $action,
+            'meta' => $meta ?: null,
+        ]);
+    }
+
+    /**
+     * Pindah status dan/atau posisi kartu di board, lalu rapatkan urutan kolom tujuan.
+     * Perubahan status dicatat di task_activities.
+     */
+    public function move(Task $task, TaskStatus $to, ?int $position, User $user, array $extraMeta = []): void
+    {
+        DB::transaction(function () use ($task, $to, $position, $user, $extraMeta) {
+            $from = $task->status;
+
+            $siblings = Task::where('workspace_id', $task->workspace_id)
+                ->where('status', $to->value)
+                ->where('id', '!=', $task->id)
+                ->orderBy('position')
+                ->orderBy('id')
+                ->pluck('position', 'id')
+                ->all();
+
+            $ids = array_keys($siblings);
+            $index = $position === null ? count($ids) : max(0, min($position, count($ids)));
+            array_splice($ids, $index, 0, [$task->id]);
+
+            foreach ($ids as $i => $id) {
+                if ($id === $task->id) {
+                    continue;
+                }
+                if ((int) $siblings[$id] !== $i) {
+                    Task::whereKey($id)->update(['position' => $i]);
+                }
+            }
+
+            $task->status = $to;
+            $task->position = $index;
+            if ($from === TaskStatus::Done && $to !== TaskStatus::Done) {
+                $task->completed_at = null;
+            }
+            $task->save();
+
+            if ($from !== $to) {
+                $this->record($task, $user, 'status_changed', $extraMeta + ['from' => $from->value, 'to' => $to->value]);
+            }
+        });
+    }
+
+    /**
+     * Intern yang boleh di-assign di workspace ini:
+     * Workspace Tim = anggota aktif berperan member, Space Intern = pemilik Space.
+     *
+     * @param  array<int, int>  $internIds
+     * @return array<int, int>
+     */
+    public function allowedAssigneeIds(Workspace $workspace, array $internIds): array
+    {
+        if ($workspace->type === 'intern') {
+            return in_array($workspace->intern_id, $internIds, true) ? [$workspace->intern_id] : [];
+        }
+
+        return Intern::whereIn('interns.id', $internIds)
+            ->join('workspace_members', function ($join) use ($workspace) {
+                $join->on('workspace_members.user_id', '=', 'interns.user_id')
+                    ->where('workspace_members.workspace_id', $workspace->id)
+                    ->whereNull('workspace_members.left_at')
+                    ->where('workspace_members.role', 'member');
+            })
+            ->pluck('interns.id')
+            ->all();
+    }
+
+    /** Label bebas per tim; Space Intern memakai tim intern atau mentornya. */
+    public function syncLabels(Task $task, array $names): void
+    {
+        $teamId = $this->labelTeamId($task->workspace);
+
+        if (! $teamId) {
+            $task->labels()->detach();
+
+            return;
+        }
+
+        $ids = collect($names)
+            ->map(fn ($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->map(fn ($name) => TaskLabel::firstOrCreate(['team_id' => $teamId, 'name' => $name])->id)
+            ->all();
+
+        $task->labels()->sync($ids);
+    }
+
+    /** @param  array<int, string|array{content: string, is_done?: bool}>  $items */
+    public function replaceChecklist(Task $task, array $items): void
+    {
+        $task->checklistItems()->delete();
+
+        foreach (array_values($items) as $i => $item) {
+            $task->checklistItems()->create([
+                'content' => is_array($item) ? ($item['content'] ?? '') : (string) $item,
+                'is_done' => is_array($item) && ! empty($item['is_done']),
+                'position' => $i,
+            ]);
+        }
+    }
+
+    /** @param  array<int, UploadedFile>  $files */
+    public function storeAttachments(Model $attachable, array $files, User $user): array
+    {
+        $saved = [];
+
+        foreach ($files as $file) {
+            $saved[] = Attachment::create([
+                'attachable_type' => $attachable->getMorphClass(),
+                'attachable_id' => $attachable->getKey(),
+                'user_id' => $user->id,
+                'disk' => self::ATTACHMENT_DISK,
+                'path' => $file->store('workspace/attachments/' . now()->format('Y/m'), self::ATTACHMENT_DISK),
+                'original_name' => mb_substr(basename($file->getClientOriginalName()), 0, 255),
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        }
+
+        return $saved;
+    }
+
+    private function labelTeamId(Workspace $workspace): ?int
+    {
+        if ($workspace->team_id) {
+            return $workspace->team_id;
+        }
+
+        $intern = $workspace->intern_id ? Intern::with('mentor')->find($workspace->intern_id) : null;
+
+        return $intern?->team_id ?? $intern?->mentor?->team_id;
+    }
+}

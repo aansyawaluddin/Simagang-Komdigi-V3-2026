@@ -9,11 +9,13 @@ use App\Models\FinalReport;
 use App\Models\Logbook;
 use App\Models\MicroSkillSubmission;
 use App\Models\Task;
+use App\Models\TaskTemplate;
 use App\Models\Workspace;
 use App\Policies\AttachmentPolicy;
 use App\Policies\AttendancePolicy;
 use App\Policies\ChannelPolicy;
 use App\Policies\TaskPolicy;
+use App\Policies\TaskTemplatePolicy;
 use App\Policies\WorkspacePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -32,6 +34,7 @@ class AuthServiceProvider extends ServiceProvider
         FinalReport::class => 'App\\Policies\\FinalReportPolicy',
         Workspace::class => WorkspacePolicy::class,
         Task::class => TaskPolicy::class,
+        TaskTemplate::class => TaskTemplatePolicy::class,
         Channel::class => ChannelPolicy::class,
         Attachment::class => AttachmentPolicy::class,
     ];

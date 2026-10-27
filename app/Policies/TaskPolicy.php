@@ -119,6 +119,22 @@ class TaskPolicy
         return $this->isWorkspaceAdmin($user) || $this->isWorkspaceMentor($user, $workspace);
     }
 
+    /** Mencentang checklist: admin, mentor workspace, atau intern yang di-assign. */
+    public function updateChecklist(User $user, Task $task): bool
+    {
+        $workspace = $task->workspace;
+
+        if ($workspace->is_archived) {
+            return false;
+        }
+
+        if ($this->isWorkspaceAdmin($user) || $this->isWorkspaceMentor($user, $workspace)) {
+            return true;
+        }
+
+        return $user->isIntern() && $this->canWrite($user, $workspace) && $this->isAssignee($user, $task);
+    }
+
     /** Komentar tugas: semua anggota yang boleh menulis di workspace. */
     public function comment(User $user, Task $task): bool
     {
