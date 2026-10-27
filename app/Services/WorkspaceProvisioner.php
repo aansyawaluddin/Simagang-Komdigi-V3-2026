@@ -44,7 +44,8 @@ class WorkspaceProvisioner
 
     public function sync(Intern $intern): string
     {
-        $intern->loadMissing(['user', 'mentor.user']);
+        // Selalu muat ulang: relasi yang sudah ter-cache (mis. dari event created) bisa usang setelah mentor_id berubah.
+        $intern->load(['user', 'mentor.user']);
 
         if (! $this->isActive($intern)) {
             $this->archive($intern);
@@ -100,7 +101,7 @@ class WorkspaceProvisioner
     /** Mentor aktif masuk ke #pengumuman dan Workspace Tim miliknya. */
     public function syncMentor(Mentor $mentor): void
     {
-        $mentor->loadMissing('user');
+        $mentor->load('user');
 
         if (! $mentor->is_active || ! $mentor->user) {
             return;
