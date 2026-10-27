@@ -67,6 +67,9 @@ class TaskService
     public function move(Task $task, TaskStatus $to, ?int $position, User $user, array $extraMeta = []): void
     {
         DB::transaction(function () use ($task, $to, $position, $user, $extraMeta) {
+            // Serialkan pemindahan kartu per workspace supaya urutan kolom tidak rusak saat dua drag bersamaan.
+            Workspace::whereKey($task->workspace_id)->lockForUpdate()->first();
+
             $from = $task->status;
 
             $siblings = Task::where('workspace_id', $task->workspace_id)
@@ -94,6 +97,8 @@ class TaskService
             $task->position = $index;
             if ($from === TaskStatus::Done && $to !== TaskStatus::Done) {
                 $task->completed_at = null;
+            } elseif ($to === TaskStatus::Done && ! $task->completed_at) {
+                $task->completed_at = now();
             }
             $task->save();
 

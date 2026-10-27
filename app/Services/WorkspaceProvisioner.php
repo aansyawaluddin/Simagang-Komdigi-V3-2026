@@ -57,7 +57,8 @@ class WorkspaceProvisioner
             return self::PENDING_ACCOUNT;
         }
 
-        $mentorUser = $intern->mentor?->user;
+        // Mentor yang dinonaktifkan dianggap tidak ada: admin perlu menetapkan mentor pengganti.
+        $mentorUser = $intern->mentor?->is_active ? $intern->mentor->user : null;
 
         // Intern belum (atau tidak lagi) punya mentor: pembuatan workspace ditunda.
         if (! $mentorUser) {
@@ -98,29 +99,108 @@ class WorkspaceProvisioner
         return self::PROVISIONED;
     }
 
-    /** Mentor aktif masuk ke #pengumuman dan Workspace Tim miliknya. */
-    public function syncMentor(Mentor $mentor): void
+    /**
+     * Mentor aktif masuk ke #pengumuman dan Workspace Tim miliknya; mentor nonaktif dicabut
+     * aksesnya dari semua workspace. Mentor yang pindah tim keluar dari workspace tim lama
+     * selama tidak lagi membimbing intern aktif di tim itu.
+     *
+     * @param  bool  $resyncInterns  sinkronkan ulang intern aktif bimbingannya (dipakai observer saat status/tim berubah)
+     */
+    public function syncMentor(Mentor $mentor, bool $resyncInterns = false): void
     {
         $mentor->load('user');
 
-        if (! $mentor->is_active || ! $mentor->user) {
-            return;
+        if ($mentor->user) {
+            if ($mentor->is_active) {
+                $this->joinMentor($mentor);
+            } else {
+                $this->releaseMentorAccess($mentor->user);
+            }
         }
 
+        if ($resyncInterns) {
+            $mentor->interns()->where('is_active', true)->get()->each(fn (Intern $intern) => $this->sync($intern));
+        }
+    }
+
+    private function joinMentor(Mentor $mentor): void
+    {
         $this->syncAnnouncement([$mentor->user->id]);
 
         $team = $mentor->team_id ? Team::find($mentor->team_id) : null;
-        if (! $team) {
-            return;
-        }
 
         DB::transaction(function () use ($mentor, $team) {
-            $workspace = $this->teamWorkspace($team);
-            $channel = $this->teamChannel($workspace, $team);
+            if ($team) {
+                $workspace = $this->teamWorkspace($team);
+                $channel = $this->teamChannel($workspace, $team);
 
-            $this->addMember($workspace, $mentor->user->id, 'mentor');
-            $channel->members()->syncWithoutDetaching([$mentor->user->id]);
+                $this->addMember($workspace, $mentor->user->id, 'mentor');
+                $channel->members()->syncWithoutDetaching([$mentor->user->id]);
+            }
+
+            $this->leaveStaleTeamWorkspaces($mentor);
         });
+    }
+
+    /** Keluar dari workspace tim yang bukan timnya dan tidak lagi berisi intern bimbingannya. */
+    private function leaveStaleTeamWorkspaces(Mentor $mentor): void
+    {
+        $keepTeamIds = Intern::where('mentor_id', $mentor->id)
+            ->where('is_active', true)
+            ->whereNotNull('team_id')
+            ->pluck('team_id')
+            ->push($mentor->team_id)
+            ->filter()
+            ->unique()
+            ->all();
+
+        $stale = Workspace::where('type', 'team')
+            ->whereNotIn('team_id', $keepTeamIds)
+            ->whereHas('members', fn ($q) => $q
+                ->where('users.id', $mentor->user_id)
+                ->where('workspace_members.role', 'mentor')
+                ->whereNull('workspace_members.left_at'))
+            ->get();
+
+        $this->leaveWorkspaces($mentor->user_id, $stale->pluck('id')->all());
+    }
+
+    /** Mentor nonaktif: keluar dari semua workspace (tim dan Space) serta #pengumuman. Riwayat tetap tersimpan. */
+    private function releaseMentorAccess(User $user): void
+    {
+        $workspaceIds = DB::table('workspace_members')
+            ->where('user_id', $user->id)
+            ->where('role', 'mentor')
+            ->whereNull('left_at')
+            ->pluck('workspace_id')
+            ->all();
+
+        $this->leaveWorkspaces($user->id, $workspaceIds, includeAnnouncement: true);
+    }
+
+    /** @param  array<int, int>  $workspaceIds */
+    private function leaveWorkspaces(int $userId, array $workspaceIds, bool $includeAnnouncement = false): void
+    {
+        if ($workspaceIds) {
+            DB::table('workspace_members')
+                ->where('user_id', $userId)
+                ->whereIn('workspace_id', $workspaceIds)
+                ->whereNull('left_at')
+                ->update(['left_at' => now(), 'updated_at' => now()]);
+        }
+
+        $channelIds = Channel::query()
+            ->when($workspaceIds, fn ($q) => $q->whereIn('workspace_id', $workspaceIds))
+            ->when(! $workspaceIds, fn ($q) => $q->whereRaw('1 = 0'))
+            ->pluck('id');
+
+        if ($includeAnnouncement) {
+            $channelIds = $channelIds->merge(Channel::whereNull('workspace_id')->where('type', 'announcement')->pluck('id'));
+        }
+
+        if ($channelIds->isNotEmpty()) {
+            DB::table('channel_members')->where('user_id', $userId)->whereIn('channel_id', $channelIds)->delete();
+        }
     }
 
     private function isActive(Intern $intern): bool

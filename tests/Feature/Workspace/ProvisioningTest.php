@@ -288,4 +288,115 @@ class ProvisioningTest extends TestCase
         $this->assertContains($mentor->user_id, $announcement->members()->pluck('users.id')->all());
         $this->assertSame('mentor', $this->activeMembers($this->teamWorkspace($team))[$mentor->user_id]);
     }
+
+    public function test_mentor_dinonaktifkan_kehilangan_akses_dan_pulih_saat_diaktifkan_lagi(): void
+    {
+        $admin = $this->makeAdmin();
+        $team = $this->makeTeam('TIM GTA');
+        $a = $this->makeMentor('Rudy', $team);
+        $b = $this->makeMentor('Tasmil', $team);
+        $intern = $this->makeIntern('Ahmad Fauzi', $a, $team);
+
+        $teamWs = $this->teamWorkspace($team);
+        $space = $this->internSpace($intern);
+        $umum = Channel::where('workspace_id', $teamWs->id)->where('type', 'team')->firstOrFail();
+        $dm = Channel::where('workspace_id', $space->id)->where('type', 'direct')->firstOrFail();
+        $announcement = Channel::whereNull('workspace_id')->where('type', 'announcement')->firstOrFail();
+
+        $a->update(['is_active' => false]);
+
+        $this->assertArrayNotHasKey($a->user_id, $this->activeMembers($teamWs));
+        $this->assertArrayNotHasKey($a->user_id, $this->activeMembers($space));
+        foreach ([$umum, $dm, $announcement] as $channel) {
+            $this->assertNotContains($a->user_id, $channel->members()->pluck('users.id')->all());
+        }
+        // mentor lain di tim tidak terpengaruh, dan intern dianggap tanpa mentor aktif
+        $this->assertArrayHasKey($b->user_id, $this->activeMembers($teamWs));
+        $this->assertContains($b->user_id, $announcement->members()->pluck('users.id')->all());
+        $this->assertSame(1, $admin->notifications()->where('type', InternWithoutMentorNotification::class)->count());
+
+        // diaktifkan lagi: akses pulih tanpa data ganda
+        $a->update(['is_active' => true]);
+
+        $this->assertSame('mentor', $this->activeMembers($teamWs)[$a->user_id]);
+        $this->assertSame('mentor', $this->activeMembers($space)[$a->user_id]);
+        $this->assertContains($a->user_id, $dm->members()->pluck('users.id')->all());
+        $this->assertContains($a->user_id, $announcement->members()->pluck('users.id')->all());
+    }
+
+    public function test_mentor_pindah_tim_keluar_dari_tim_lama_kecuali_masih_membimbing_intern_di_sana(): void
+    {
+        $this->makeAdmin();
+        $teamA = $this->makeTeam('TIM GTA');
+        $teamB = $this->makeTeam('TIM DEA');
+        $free = $this->makeMentor('Rudy', $teamA);
+        $busy = $this->makeMentor('Tasmil', $teamA);
+        $this->makeIntern('Ahmad Fauzi', $busy, $teamA);
+
+        $free->update(['team_id' => $teamB->id]);
+        $busy->update(['team_id' => $teamB->id]);
+
+        $wsA = $this->teamWorkspace($teamA);
+        $wsB = $this->teamWorkspace($teamB);
+
+        $this->assertArrayNotHasKey($free->user_id, $this->activeMembers($wsA), 'tanpa intern di tim lama: keluar');
+        $this->assertArrayHasKey($free->user_id, $this->activeMembers($wsB));
+        $this->assertArrayHasKey($busy->user_id, $this->activeMembers($wsA), 'masih membimbing intern di tim lama: tetap');
+        $this->assertArrayHasKey($busy->user_id, $this->activeMembers($wsB));
+    }
+
+    public function test_menghapus_intern_mengarsipkan_space_dan_riwayat_pesan_tetap(): void
+    {
+        $this->makeAdmin();
+        $team = $this->makeTeam('TIM GTA');
+        $mentor = $this->makeMentor('Rudy', $team);
+        $intern = $this->makeIntern('Ahmad Fauzi', $mentor, $team);
+        $space = $this->internSpace($intern);
+        $umum = Channel::where('workspace_id', $this->teamWorkspace($team)->id)->where('type', 'team')->firstOrFail();
+        $message = $umum->messages()->create(['user_id' => $intern->user_id, 'body' => 'Halo dari intern']);
+
+        // urutan seperti AdminInternController@destroy: intern dulu, lalu user
+        $userId = $intern->user_id;
+        $intern->delete();
+        \App\Models\User::find($userId)->delete();
+
+        $this->assertTrue($space->fresh()->is_archived);
+        $this->assertNull($space->fresh()->intern_id);
+        $this->assertDatabaseHas('messages', ['id' => $message->id, 'user_id' => null, 'body' => 'Halo dari intern']);
+    }
+
+    public function test_menghapus_user_langsung_juga_mengarsipkan_space_intern(): void
+    {
+        $this->makeAdmin();
+        $team = $this->makeTeam('TIM GTA');
+        $mentor = $this->makeMentor('Rudy', $team);
+        $intern = $this->makeIntern('Ahmad Fauzi', $mentor, $team);
+        $space = $this->internSpace($intern);
+
+        // cascade database menghapus intern tanpa event model
+        $intern->user->delete();
+
+        $this->assertDatabaseMissing('interns', ['id' => $intern->id]);
+        $this->assertTrue($space->fresh()->is_archived);
+    }
+
+    public function test_menghapus_mentor_membuat_intern_bimbingannya_dianggap_tanpa_mentor(): void
+    {
+        $admin = $this->makeAdmin();
+        $team = $this->makeTeam('TIM GTA');
+        $mentor = $this->makeMentor('Rudy', $team);
+        $intern = $this->makeIntern('Ahmad Fauzi', $mentor, $team);
+        $space = $this->internSpace($intern);
+        $mentorUserId = $mentor->user_id;
+
+        // urutan seperti AdminMentorController@destroy: mentor dulu, lalu user
+        $mentor->delete();
+        \App\Models\User::find($mentorUserId)->delete();
+
+        $this->assertNull($intern->fresh()->mentor_id);
+        $this->assertSame(1, $admin->notifications()->where('type', InternWithoutMentorNotification::class)->count());
+        $this->assertArrayNotHasKey($mentorUserId, $this->activeMembers($space));
+        // Space dan riwayat intern tetap ada
+        $this->assertFalse($space->fresh()->is_archived);
+    }
 }

@@ -392,4 +392,54 @@ class TaskFlowTest extends TestCase
 
         $this->assertNull(Task::find($id)->overdue_at);
     }
+
+    public function test_mentor_menyeret_kartu_ke_selesai_mengisi_waktu_selesai_dan_menotifikasi_intern(): void
+    {
+        $id = $this->makeTaskForAhmad();
+
+        $this->setStatus($this->rudy->user, $id, 'done', ['score' => 80, 'feedback' => 'Langsung ditutup'])
+            ->assertOk()->assertJsonPath('data.status', 'done')->assertJsonPath('data.score', 80);
+
+        $task = Task::find($id);
+        $this->assertNotNull($task->completed_at, 'metrik tepat waktu butuh completed_at');
+        $this->assertSame(1, \DB::table('notifications')->where('notifiable_id', $this->ahmad->user_id)
+            ->where('type', \App\Notifications\TaskReviewedNotification::class)->count());
+
+        // dikembalikan dari Selesai: waktu selesai dihapus lagi
+        $this->setStatus($this->rudy->user, $id, 'in_progress')->assertOk();
+        $this->assertNull(Task::find($id)->completed_at);
+    }
+
+    public function test_mentor_menyeret_kartu_ke_revisi_wajib_catatan(): void
+    {
+        $id = $this->makeTaskForAhmad();
+
+        $this->setStatus($this->rudy->user, $id, 'revision')->assertUnprocessable();
+        $this->assertSame('todo', Task::find($id)->status->value);
+
+        $this->setStatus($this->rudy->user, $id, 'revision', ['feedback' => 'Perbaiki bagian B'])
+            ->assertOk()->assertJsonPath('data.status', 'revision')->assertJsonPath('data.feedback', 'Perbaiki bagian B');
+    }
+
+    public function test_intern_yang_meminta_selesai_atau_revisi_tetap_mendapat_403_bukan_422(): void
+    {
+        $id = $this->makeTaskForAhmad();
+
+        $this->setStatus($this->ahmad->user, $id, 'revision')->assertForbidden();
+        $this->setStatus($this->ahmad->user, $id, 'done', ['score' => 100])->assertForbidden();
+        $this->assertSame('todo', Task::find($id)->status->value);
+    }
+
+    public function test_komentar_tugas_dari_user_yang_sudah_dihapus_tampil_sebagai_pengguna_dihapus(): void
+    {
+        $id = $this->makeTaskForAhmad();
+        $this->actingAs($this->ahmad->user)->postJson("/workspace/tasks/{$id}/comments", ['body' => 'Komentar lama'])->assertCreated();
+
+        $this->ahmad->delete();
+        $this->ahmad->user->delete();
+
+        $comments = $this->actingAs($this->rudy->user)->getJson("/workspace/tasks/{$id}")->assertOk()->json('data.comments');
+        $this->assertSame('Komentar lama', $comments[0]['body']);
+        $this->assertSame('Pengguna dihapus', $comments[0]['user']['name']);
+    }
 }

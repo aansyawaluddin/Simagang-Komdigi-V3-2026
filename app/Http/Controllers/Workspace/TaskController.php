@@ -210,24 +210,38 @@ class TaskController extends Controller
         return new TaskResource($task->fresh([...self::RELATIONS]));
     }
 
-    /** Drag and drop: pindah status dan posisi kartu. Intern maksimal sampai Review. */
+    /**
+     * Drag and drop: pindah status dan posisi kartu. Intern maksimal sampai Review.
+     * Admin/mentor yang menyeret kartu ke Selesai atau Revisi mengikuti aturan review yang sama:
+     * Revisi wajib disertai catatan, Selesai boleh membawa nilai, dan intern diberi tahu.
+     */
     public function updateStatus(Request $request, Task $task): TaskResource
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::enum(TaskStatus::class)],
-            'position' => ['nullable', 'integer', 'min:0'],
-            'result_link' => ['nullable', 'url', 'max:500'],
-        ]);
+        $statusOnly = $request->validate(['status' => ['required', Rule::enum(TaskStatus::class)]]);
+        $to = TaskStatus::from($statusOnly['status']);
 
-        $to = TaskStatus::from($data['status']);
-
+        // Otorisasi lebih dulu supaya yang tidak berhak mendapat 403, bukan galat validasi.
         $this->authorize('updateStatus', [$task, $to]);
 
-        $from = $task->status;
+        $data = $request->validate([
+            'position' => ['nullable', 'integer', 'min:0'],
+            'result_link' => ['nullable', 'url', 'max:500'],
+            'feedback' => [Rule::requiredIf($to === TaskStatus::Revision), 'nullable', 'string', 'max:5000'],
+            'score' => ['nullable', 'integer', 'between:0,100'],
+        ]);
 
-        DB::transaction(function () use ($request, $task, $to, $data) {
+        $from = $task->status;
+        $isReviewDecision = in_array($to, [TaskStatus::Done, TaskStatus::Revision], true);
+
+        DB::transaction(function () use ($request, $task, $to, $data, $isReviewDecision) {
             if (! empty($data['result_link'])) {
                 $task->result_link = $data['result_link'];
+            }
+
+            if ($isReviewDecision) {
+                $task->feedback = $data['feedback'] ?? $task->feedback;
+                $task->score = $to === TaskStatus::Done ? ($data['score'] ?? $task->score) : null;
+                $task->completed_at = $to === TaskStatus::Done ? ($task->completed_at ?? now()) : null;
             }
 
             $this->tasks->move($task, $to, $data['position'] ?? null, $request->user());
@@ -235,6 +249,10 @@ class TaskController extends Controller
 
         if ($to === TaskStatus::Review && $from !== TaskStatus::Review) {
             $this->notifier->reviewRequested($task, $request->user());
+        }
+
+        if ($isReviewDecision && $from !== $to) {
+            $this->notifier->reviewed($task, $request->user());
         }
 
         return new TaskResource($task->fresh(self::RELATIONS));
