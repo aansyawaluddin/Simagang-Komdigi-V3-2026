@@ -45,13 +45,19 @@ class WorkspacePageController extends Controller
             fn ($m) => $m->where('users.id', $user->id)->whereNull('workspace_members.left_at')
         ));
 
+        // Intern biasanya punya dua workspace (Space pribadi dan Workspace Tim): beri pilihan.
+        // Hanya bila tinggal satu yang aktif, langsung arahkan ke sana.
         if ($user->isIntern()) {
-            $own = (clone $base)->where('type', 'intern')->where('is_archived', false)->first()
-                ?? (clone $base)->orderBy('is_archived')->first();
+            $mine = (clone $base)->orderBy('is_archived')->orderByRaw("type = 'intern' desc")->orderBy('id')->get();
+            $active = $mine->where('is_archived', false);
 
-            return $own
-                ? redirect()->route('workspace.show', $own)
-                : view('workspace.index', $this->emptyIndex($user->intern?->mentor?->user));
+            if ($mine->isEmpty()) {
+                return view('workspace.index', $this->emptyIndex($user->intern?->mentor?->user));
+            }
+
+            if ($active->count() <= 1) {
+                return redirect()->route('workspace.show', $active->first() ?? $mine->first());
+            }
         }
 
         $counts = [

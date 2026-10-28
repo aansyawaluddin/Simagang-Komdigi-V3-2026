@@ -18,6 +18,7 @@
 @section('workspace-content')
     @php
         $viewerIsAdmin = ! empty($teams);
+        $viewerIsIntern = auth()->user()->isIntern();
         $total = $noGroup ? 0 : $counts['active'] + $counts['finished'];
         $filtering = request()->filled('q') || request()->filled('team') || request()->filled('mentor');
         $showFilter = $viewerIsAdmin || $total > 9 || $filtering;
@@ -26,8 +27,8 @@
 
     <x-workspace.hero class="ws-anim-1 mb-6"
                       eyebrow="Workspace"
-                      :title="$noGroup ? 'Kelompok Magang' : ($viewerIsAdmin ? 'Semua Kelompok' : 'Kelompok Bimbingan')"
-                      :subtitle="$noGroup ? 'Tugas dan diskusi bersama kelompokmu' : ($viewerIsAdmin ? 'Pantau kelompok kerja semua mentor' : 'Kelompokkan anak bimbingan, beri tugas, dan pantau progresnya')">
+                      :title="$noGroup ? 'Kelompok Magang' : ($viewerIsAdmin ? 'Semua Kelompok' : ($viewerIsIntern ? 'Workspace Saya' : 'Kelompok Bimbingan'))"
+                      :subtitle="$noGroup ? 'Tugas dan diskusi bersama kelompokmu' : ($viewerIsAdmin ? 'Pantau kelompok kerja semua mentor' : ($viewerIsIntern ? 'Space pribadi dan workspace tim Anda' : 'Kelompokkan anak bimbingan, beri tugas, dan pantau progresnya'))">
         @unless ($noGroup)
             <x-slot:meta>
                 <span class="inline-flex items-center gap-1.5"><i class="fas fa-users"></i> {{ $counts['active'] }} kelompok aktif</span>

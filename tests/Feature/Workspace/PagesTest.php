@@ -17,8 +17,21 @@ class PagesTest extends TestCase
         $this->setUpScenario();
     }
 
-    public function test_intern_diarahkan_ke_space_pribadinya(): void
+    public function test_intern_dengan_dua_workspace_diberi_pilihan_space_dan_tim(): void
     {
+        $this->actingAs($this->ahmad->user)->get('/workspace')
+            ->assertOk()
+            ->assertSee('Workspace Saya')
+            ->assertSee($this->spAhmad->name)
+            ->assertSee($this->wsGta->name)
+            ->assertDontSee($this->wsDea->name)
+            ->assertDontSee($this->spSiti->name);
+    }
+
+    public function test_intern_dengan_satu_workspace_aktif_langsung_diarahkan(): void
+    {
+        $this->wsGta->update(['is_archived' => true]);
+
         $this->actingAs($this->ahmad->user)->get('/workspace')
             ->assertRedirect(route('workspace.show', $this->spAhmad));
     }
