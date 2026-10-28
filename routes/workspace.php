@@ -3,6 +3,7 @@
 use App\Http\Controllers\Workspace\AttachmentController;
 use App\Http\Controllers\Workspace\ChannelController;
 use App\Http\Controllers\Workspace\DashboardController;
+use App\Http\Controllers\Workspace\LabelController;
 use App\Http\Controllers\Workspace\MessageController;
 use App\Http\Controllers\Workspace\NotificationController;
 use App\Http\Controllers\Workspace\TaskCommentController;
@@ -28,6 +29,20 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
     Route::post('templates', [TaskTemplateController::class, 'store'])->name('templates.store');
     Route::put('templates/{template}', [TaskTemplateController::class, 'update'])->whereNumber('template')->name('templates.update');
     Route::delete('templates/{template}', [TaskTemplateController::class, 'destroy'])->whereNumber('template')->name('templates.destroy');
+
+    // Tugas milik intern yang login (dropdown logbook); didaftarkan sebelum tasks/{task}
+    Route::get('tasks/mine', [TaskController::class, 'mine'])->name('tasks.mine');
+
+    // Unggah lampiran lebih dulu, ditautkan lewat attachment_ids
+    Route::post('attachments', [AttachmentController::class, 'upload'])->name('attachments.upload');
+
+    // Aktivitas workspace berhalaman
+    Route::get('{workspace}/activities', [WorkspacePageController::class, 'activities'])->whereNumber('workspace')->name('activities.index');
+
+    // Label per tim
+    Route::post('teams/{team}/labels', [LabelController::class, 'store'])->whereNumber('team')->name('labels.store');
+    Route::patch('labels/{label}', [LabelController::class, 'update'])->whereNumber('label')->name('labels.update');
+    Route::delete('labels/{label}', [LabelController::class, 'destroy'])->whereNumber('label')->name('labels.destroy');
 
     // Tugas
     Route::get('{workspace}/tasks', [TaskController::class, 'index'])->whereNumber('workspace')->name('tasks.index');

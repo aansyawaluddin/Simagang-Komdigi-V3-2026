@@ -154,6 +154,27 @@ class WorkspacePageController extends Controller
         ]);
     }
 
+    /** Aktivitas workspace berhalaman (20 per muat), terbaru dulu; lanjutan lewat ?before={id}. */
+    public function activities(Request $request, Workspace $workspace): JsonResponse
+    {
+        $this->authorize('view', $workspace);
+
+        $before = $request->validate(['before' => ['nullable', 'integer', 'min:1']])['before'] ?? null;
+
+        $rows = TaskActivity::query()
+            ->whereIn('task_id', Task::withTrashed()->where('workspace_id', $workspace->id)->select('id'))
+            ->when($before, fn ($q) => $q->where('id', '<', $before))
+            ->with(['user', 'task' => fn ($q) => $q->withTrashed()])
+            ->orderByDesc('id')
+            ->limit(21)
+            ->get();
+
+        return response()->json([
+            'data' => $rows->take(20)->map(fn (TaskActivity $a) => $this->presenter->activity($a))->values(),
+            'meta' => ['has_more' => $rows->count() > 20],
+        ]);
+    }
+
     /** Detail tugas: HTML (halaman penuh) atau JSON (slide-over). */
     public function task(Request $request, Task $task): View|JsonResponse
     {

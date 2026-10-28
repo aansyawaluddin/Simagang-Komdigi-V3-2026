@@ -217,23 +217,28 @@ class WorkspacePresenter
                 'position' => $i->position,
             ])->values()->all(),
             'attachments' => $task->attachments->map(fn ($a) => $this->attachment($a))->values()->all(),
-            'result_links' => $task->result_link ? [['url' => $task->result_link, 'label' => null]] : [],
+            'result_links' => $task->result_links ?: ($task->result_link ? [['url' => $task->result_link, 'label' => null]] : []),
             'score' => $task->score,
             'feedback' => $task->feedback,
             'feedback_html' => $this->markdown($task->feedback),
-            'comments' => $task->comments->map(fn ($c) => [
-                'id' => $c->id,
-                'user' => $this->user($c->user) ?? ['id' => 0, 'name' => 'Pengguna dihapus', 'role' => 'intern', 'avatar_url' => null],
-                'body' => $c->body,
-                'body_html' => $this->markdown($c->body),
-                'attachments' => $c->relationLoaded('attachments') ? $c->attachments->map(fn ($a) => $this->attachment($a))->values()->all() : [],
-                'created_at' => $this->iso($c->created_at),
-                'is_deleted' => false,
-                'can' => ['delete' => false],
-            ])->values()->all(),
+            'comments' => $task->comments->map(fn ($c) => $this->comment($c))->values()->all(),
             'activities' => $task->activities->sortByDesc('id')->map(fn ($a) => $this->activity($a, $task))->values()->all(),
             'can' => $card['can'] + ['comment' => $gate->allows('comment', $task)],
         ]);
+    }
+
+    public function comment($c): array
+    {
+        return [
+            'id' => $c->id,
+            'user' => $this->user($c->user) ?? ['id' => 0, 'name' => 'Pengguna dihapus', 'role' => 'intern', 'avatar_url' => null],
+            'body' => $c->body,
+            'body_html' => $this->markdown($c->body),
+            'attachments' => $c->relationLoaded('attachments') ? $c->attachments->map(fn ($a) => $this->attachment($a))->values()->all() : [],
+            'created_at' => $this->iso($c->created_at),
+            'is_deleted' => false,
+            'can' => ['delete' => false],
+        ];
     }
 
     public function attachment($a): array

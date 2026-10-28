@@ -81,7 +81,7 @@ class TaskFlowTest extends TestCase
         $this->setStatus($this->siti->user, $id, 'review')->assertForbidden();
 
         $this->setStatus($ahmad, $id, 'review', ['result_link' => 'https://github.com/x/y'])->assertOk();
-        $this->assertSame('https://github.com/x/y', Task::find($id)->result_link);
+        $this->assertSame([['url' => 'https://github.com/x/y', 'label' => null]], Task::find($id)->result_links);
 
         // dari Review, intern tidak bisa menarik kembali
         $this->setStatus($ahmad, $id, 'in_progress')->assertForbidden();
@@ -316,6 +316,7 @@ class TaskFlowTest extends TestCase
             'template_id' => $template->json('data.id'),
             'title' => null,
             'assignee_ids' => [$this->ahmad->id, $this->siti->id],
+            'separate_copies' => true,
         ])->assertCreated();
 
         $response->assertJsonCount(2, 'data');

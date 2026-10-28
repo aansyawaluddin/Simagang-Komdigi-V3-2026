@@ -10,6 +10,7 @@ class Attachment extends Model
         'attachable_type',
         'attachable_id',
         'user_id',
+        'workspace_id',
         'disk',
         'path',
         'original_name',

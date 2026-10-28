@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Workspace;
 use App\Http\Controllers\Controller;
 use App\Models\Attachment;
 use App\Models\Task;
+use App\Models\Workspace;
 use App\Services\AttachmentService;
 use App\Services\TaskService;
+use App\Services\WorkspacePresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +19,31 @@ class AttachmentController extends Controller
     /** PDF, DOC/DOCX, XLS/XLSX, PNG/JPG, ZIP, maksimal 10 MB per file. */
     public const FILE_RULES = ['file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,zip'];
 
-    public function __construct(private TaskService $tasks, private AttachmentService $attachments)
+    public function __construct(
+        private TaskService $tasks,
+        private AttachmentService $attachments,
+        private WorkspacePresenter $presenter,
+    ) {
+    }
+
+    /**
+     * Unggah satu berkas lebih dulu (lampiran yatim). Ditautkan ke tugas, komentar, atau pesan
+     * lewat `attachment_ids` saat formulirnya dikirim.
+     */
+    public function upload(Request $request): JsonResponse
     {
+        $data = $request->validate([
+            'file' => ['required', ...self::FILE_RULES],
+            'workspace_id' => ['required', 'integer', 'exists:workspaces,id'],
+        ]);
+
+        $workspace = Workspace::findOrFail($data['workspace_id']);
+        $this->authorize('view', $workspace);
+        abort_if($workspace->is_archived, 403, 'Workspace sudah diarsipkan. Berkas tidak bisa diunggah.');
+
+        $attachment = $this->attachments->upload($request->file('file'), $request->user(), $workspace->id);
+
+        return response()->json(['data' => $this->presenter->attachment($attachment)], 201);
     }
 
     /** Unggah lampiran ke tugas. */

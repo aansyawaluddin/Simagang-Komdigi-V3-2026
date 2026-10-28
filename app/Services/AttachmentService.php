@@ -50,6 +50,58 @@ class AttachmentService
         return $saved;
     }
 
+    /**
+     * Unggah satu berkas tanpa induk (lampiran "yatim"). Berkas ditautkan ke tugas, komentar,
+     * atau pesan lewat claim() saat formulirnya dikirim.
+     */
+    public function upload(UploadedFile $file, User $user, ?int $workspaceId, bool $compressImages = true): Attachment
+    {
+        $this->enforceUploadLimit($user, 1);
+
+        $path = $this->storeFile($file, $compressImages);
+
+        return Attachment::create([
+            'attachable_type' => null,
+            'attachable_id' => null,
+            'user_id' => $user->id,
+            'workspace_id' => $workspaceId,
+            'disk' => self::DISK,
+            'path' => $path,
+            'original_name' => mb_substr(basename($file->getClientOriginalName()), 0, 255),
+            'mime' => $file->getMimeType(),
+            'size' => Storage::disk(self::DISK)->size($path),
+        ]);
+    }
+
+    /**
+     * Tautkan lampiran yatim milik user ini (dan workspace yang sama) ke induknya.
+     *
+     * @param  array<int, int>  $ids
+     * @return array<int, Attachment>
+     */
+    public function claim(Model $attachable, array $ids, User $user, int $workspaceId): array
+    {
+        if (! $ids) {
+            return [];
+        }
+
+        $attachments = Attachment::query()
+            ->whereIn('id', $ids)
+            ->whereNull('attachable_id')
+            ->where('user_id', $user->id)
+            ->where('workspace_id', $workspaceId)
+            ->get();
+
+        foreach ($attachments as $attachment) {
+            $attachment->update([
+                'attachable_type' => $attachable->getMorphClass(),
+                'attachable_id' => $attachable->getKey(),
+            ]);
+        }
+
+        return $attachments->all();
+    }
+
     /** Maksimal 10 file per menit per user, dihitung per file bukan per request. */
     private function enforceUploadLimit(User $user, int $count): void
     {

@@ -29,6 +29,7 @@ class Task extends Model
         'score',
         'feedback',
         'result_link',
+        'result_links',
         'template_id',
     ];
 
@@ -40,6 +41,7 @@ class Task extends Model
         'completed_at' => 'datetime',
         'overdue_at' => 'datetime',
         'reminded_at' => 'datetime',
+        'result_links' => 'array',
     ];
 
     /** Kode tugas yang dirujuk di chat, misalnya T-12. */

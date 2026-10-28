@@ -38,11 +38,12 @@ class TaskService
                 'due_at' => $data['due_at'],
                 'position' => $position,
                 'template_id' => $data['template_id'] ?? null,
+                'result_links' => $data['result_links'] ?? null,
             ]);
 
             $task->assignees()->sync($internIds);
-            $this->syncLabels($task, $data['labels'] ?? []);
-            $this->replaceChecklist($task, $data['checklist'] ?? []);
+            $this->applyLabels($task, $data);
+            $this->applyChecklist($task, $data);
 
             $this->record($task, $creator, 'created', $extraMeta + ['assignee_ids' => array_values($internIds)]);
 
@@ -130,6 +131,65 @@ class TaskService
             })
             ->pluck('interns.id')
             ->all();
+    }
+
+    /** Label dari `label_ids` (id label tim) bila ada, kalau tidak dari `labels` (nama bebas). */
+    public function applyLabels(Task $task, array $data): void
+    {
+        if (array_key_exists('label_ids', $data)) {
+            $this->syncLabelIds($task, $data['label_ids'] ?? []);
+        } elseif (array_key_exists('labels', $data)) {
+            $this->syncLabels($task, $data['labels'] ?? []);
+        }
+    }
+
+    /** Checklist dari `checklist_items` ([{id?, content, is_done}]) bila ada, kalau tidak dari `checklist` (teks). */
+    public function applyChecklist(Task $task, array $data): void
+    {
+        if (array_key_exists('checklist_items', $data)) {
+            $this->syncChecklistItems($task, $data['checklist_items'] ?? []);
+        } elseif (array_key_exists('checklist', $data)) {
+            $this->replaceChecklist($task, $data['checklist'] ?? []);
+        }
+    }
+
+    /** Hanya label milik tim workspace ini yang diterima; id lain diabaikan. */
+    public function syncLabelIds(Task $task, array $ids): void
+    {
+        $teamId = $this->labelTeamId($task->workspace);
+
+        $valid = $teamId
+            ? TaskLabel::where('team_id', $teamId)->whereIn('id', $ids)->pluck('id')->all()
+            : [];
+
+        $task->labels()->sync($valid);
+    }
+
+    /**
+     * Item dengan `id` milik tugas ini diperbarui, item tanpa id dibuat, dan item lama yang
+     * tidak dikirim dihapus. Urutan mengikuti urutan array.
+     */
+    public function syncChecklistItems(Task $task, array $items): void
+    {
+        $existing = $task->checklistItems()->pluck('id')->all();
+        $keep = [];
+
+        foreach (array_values($items) as $position => $item) {
+            $attributes = [
+                'content' => (string) ($item['content'] ?? ''),
+                'is_done' => ! empty($item['is_done']),
+                'position' => $position,
+            ];
+
+            if (! empty($item['id']) && in_array((int) $item['id'], $existing, true)) {
+                $task->checklistItems()->whereKey($item['id'])->update($attributes);
+                $keep[] = (int) $item['id'];
+            } else {
+                $keep[] = $task->checklistItems()->create($attributes)->id;
+            }
+        }
+
+        $task->checklistItems()->whereNotIn('id', $keep)->delete();
     }
 
     /** Label bebas per tim; Space Intern memakai tim intern atau mentornya. */

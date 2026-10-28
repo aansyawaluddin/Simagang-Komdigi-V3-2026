@@ -30,6 +30,8 @@ class TaskCommentController extends Controller
             'body' => ['required', 'string', 'max:5000'],
             'files' => ['nullable', 'array', 'max:10'],
             'files.*' => AttachmentController::FILE_RULES,
+            'attachment_ids' => ['nullable', 'array', 'max:10'],
+            'attachment_ids.*' => ['integer'],
         ]);
 
         $user = $request->user();
@@ -43,6 +45,8 @@ class TaskCommentController extends Controller
             if ($request->hasFile('files')) {
                 $this->attachments->store($comment, $request->file('files'), $user);
             }
+
+            $this->attachments->claim($comment, $data['attachment_ids'] ?? [], $user, $task->workspace_id);
 
             $this->tasks->record($task, $user, 'commented', ['comment_id' => $comment->id]);
 
@@ -58,14 +62,11 @@ class TaskCommentController extends Controller
         $comment->load('attachments');
 
         return response()->json([
+            'data' => app(\App\Services\WorkspacePresenter::class)->comment($comment),
+            // Kunci lama dipertahankan untuk klien yang belum pindah ke `data`.
             'id' => $comment->id,
             'body' => $comment->body,
             'user' => ['id' => $user->id, 'name' => $user->name],
-            'attachments' => $comment->attachments->map(fn ($a) => [
-                'id' => $a->id,
-                'name' => $a->original_name,
-                'url' => route('workspace.attachments.download', $a),
-            ]),
             'created_at' => $comment->created_at,
         ], 201);
     }

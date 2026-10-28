@@ -16,6 +16,11 @@ class AttachmentPolicy
 {
     public function view(User $user, Attachment $attachment): bool
     {
+        // Lampiran yang belum ditautkan hanya terlihat oleh pengunggahnya.
+        if ($attachment->attachable_id === null) {
+            return $attachment->user_id === $user->id;
+        }
+
         $parent = $attachment->attachable;
 
         return match (true) {
