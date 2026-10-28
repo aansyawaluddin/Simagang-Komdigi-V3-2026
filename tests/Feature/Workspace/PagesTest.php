@@ -106,4 +106,32 @@ class PagesTest extends TestCase
         $this->actingAs($this->ahmad->user)->get('/intern/dashboard')->assertOk();
         $this->actingAs($this->ahmad->user)->get('/intern/logbook/create')->assertOk();
     }
+
+    public function test_workspace_tim_membawa_semua_mentor_dan_jumlah_intern_sebenarnya(): void
+    {
+        $data = app(\App\Services\WorkspacePresenter::class)->workspace($this->wsGta, $this->rudy->user);
+
+        $this->assertSame(4, $data['members_count']);
+        $this->assertSame(2, $data['interns_count'], 'bukan members_count - 1');
+        $this->assertEqualsCanonicalizing(['Rudy Hermayadi', 'Tasmil'], array_column($data['mentors'], 'name'));
+
+        // Pratinjau avatar memuat satu mentor lalu intern, supaya kartu tetap punya avatar intern.
+        $roles = array_column($data['members_preview'], 'role');
+        $this->assertSame('mentor', $roles[0]);
+        $this->assertSame(2, count(array_keys($roles, 'intern')));
+
+        $space = app(\App\Services\WorkspacePresenter::class)->workspace($this->spAhmad, $this->rudy->user);
+        $this->assertSame(1, $space['interns_count']);
+        $this->assertCount(1, $space['mentors']);
+    }
+
+    public function test_halaman_menampilkan_banyak_mentor_dan_jumlah_intern(): void
+    {
+        $this->actingAs($this->rudy->user)->get("/workspace/{$this->wsGta->id}")
+            ->assertOk()
+            ->assertSee('Mentor: ', false)
+            ->assertSee('Rudy Hermayadi, Tasmil');
+
+        $this->actingAs($this->admin)->get('/workspace')->assertOk()->assertSee('2 anak magang');
+    }
 }

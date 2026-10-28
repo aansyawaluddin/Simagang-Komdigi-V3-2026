@@ -133,6 +133,13 @@ class WorkspacePresenter
         $minis = $members->map(fn ($m) => $this->user($users[$m->id] ?? null))->filter()->values();
         $mentor = $members->firstWhere('role', 'mentor');
 
+        // Workspace tim berisi semua mentor tim, bukan satu: hitung peran sebenarnya dari user.
+        $mentorMinis = $minis->where('role', 'mentor')->values();
+        $internMinis = $minis->where('role', 'intern')->values();
+
+        // Pratinjau avatar: satu mentor lalu intern (maks. 3), baru mentor lain bila masih ada tempat.
+        $preview = $mentorMinis->take(1)->concat($internMinis->take(3))->concat($mentorMinis->slice(1))->take(4)->values();
+
         $endDate = $workspace->type === 'intern'
             ? $workspace->intern?->end_date
             : Intern::where('team_id', $workspace->team_id)->where('is_active', true)->max('end_date');
@@ -159,7 +166,9 @@ class WorkspacePresenter
             'stats' => $this->stats($workspace),
             'unread_messages' => (int) $unread,
             'members_count' => $minis->count(),
-            'members_preview' => $minis->take(4)->all(),
+            'interns_count' => $internMinis->count(),
+            'mentors' => $mentorMinis->all(),
+            'members_preview' => $preview->all(),
             // Pengelolaan kelompok manual belum ada: workspace dibuat otomatis oleh sistem.
             'can' => ['rename' => false, 'add_members' => false, 'finish' => false],
             'url' => route('workspace.show', $workspace),
