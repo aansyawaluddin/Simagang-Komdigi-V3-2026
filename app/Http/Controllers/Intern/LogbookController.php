@@ -193,8 +193,12 @@ class LogbookController extends Controller
         $data = [
             'date' => $validated['date'],
             'activity' => $validated['activity'],
-            'task_id' => $validated['task_id'] ?? null,
         ];
+
+        // Tautan tugas hanya berubah jika field dikirim; kalau tidak, tautan lama dipertahankan.
+        if ($request->has('task_id')) {
+            $data['task_id'] = $validated['task_id'] ?? null;
+        }
 
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');

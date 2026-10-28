@@ -49,7 +49,18 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        Gate::before(function ($user) {
+        // Policy modul Workspace sudah memberi akses admin sendiri dan menegakkan status arsip,
+        // jadi super admin tidak boleh melewatkannya lewat Gate::before.
+        $workspaceModels = [Workspace::class, Task::class, TaskTemplate::class, Channel::class, Message::class, Attachment::class];
+
+        Gate::before(function ($user, $ability, $arguments = []) use ($workspaceModels) {
+            $subject = $arguments[0] ?? null;
+            $subjectClass = is_object($subject) ? $subject::class : $subject;
+
+            if (is_string($subjectClass) && in_array($subjectClass, $workspaceModels, true)) {
+                return null;
+            }
+
             if ($user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
                 return true;
             }

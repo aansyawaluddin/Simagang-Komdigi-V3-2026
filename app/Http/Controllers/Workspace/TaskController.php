@@ -15,6 +15,7 @@ use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -52,19 +53,34 @@ class TaskController extends Controller
             ->when($filters['priority'] ?? null, fn ($q, $p) => $q->where('priority', $p))
             ->when($filters['label'] ?? null, fn ($q, $name) => $q->whereHas('labels', fn ($l) => $l->where('name', $name)))
             ->when($filters['due_from'] ?? null, fn ($q, $d) => $q->where('due_at', '>=', $d))
-            ->when($filters['due_to'] ?? null, fn ($q, $d) => $q->where('due_at', '<=', $d))
+            ->when($filters['due_to'] ?? null, fn ($q, $d) => $q->where('due_at', '<=', Carbon::parse($d)->endOfDay()))
             ->orderBy('position')
             ->orderBy('id');
 
-        if (! empty($filters['status'])) {
-            $tasks = $query()->where('status', $filters['status'])->limit(self::BOARD_ACTIVE_LIMIT)->get();
-        } else {
-            $active = $query()->where('status', '!=', TaskStatus::Done->value)->limit(self::BOARD_ACTIVE_LIMIT)->get();
-            $done = $query()->where('status', TaskStatus::Done->value)->reorder('completed_at', 'desc')->limit(self::BOARD_DONE_LIMIT)->get();
-            $tasks = $active->concat($done);
+        // Batas per kolom (bukan lintas kolom) supaya kartu di satu kolom tidak menggusur kolom lain.
+        $statuses = ! empty($filters['status']) ? [TaskStatus::from($filters['status'])] : TaskStatus::cases();
+        $tasks = collect();
+        $truncated = [];
+
+        foreach ($statuses as $status) {
+            $isDone = $status === TaskStatus::Done;
+            $limit = $isDone ? self::BOARD_DONE_LIMIT : self::BOARD_ACTIVE_LIMIT;
+
+            $column = $query()->where('status', $status->value)
+                ->when($isDone, fn ($q) => $q->reorder('completed_at', 'desc'))
+                ->limit($limit + 1)
+                ->get();
+
+            if ($column->count() > $limit) {
+                $truncated[] = $status->value;
+                $column = $column->take($limit);
+            }
+
+            $tasks = $tasks->concat($column);
         }
 
-        return TaskResource::collection($tasks);
+        // meta.truncated = daftar status yang kartunya dipotong oleh batas board.
+        return TaskResource::collection($tasks)->additional(['meta' => ['truncated' => $truncated]]);
     }
 
     /**

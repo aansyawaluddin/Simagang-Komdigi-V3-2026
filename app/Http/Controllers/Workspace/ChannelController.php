@@ -43,9 +43,20 @@ class ChannelController extends Controller
             ->when(empty($p['include_archived']), fn ($q) => $q->where('is_archived', false))
             ->orderBy('workspace_id')
             ->orderBy('name')
-            ->get()
-            ->filter(fn (Channel $c) => Gate::forUser($user)->allows('view', $c))
-            ->values();
+            ->get();
+
+        // Setara ChannelPolicy::view, tapi keanggotaan workspace dicek sekali (bukan per channel).
+        if (! $user->isSuperAdmin() && ! $user->isAdminFull()) {
+            $workspaceIds = DB::table('workspace_members')
+                ->where('user_id', $user->id)
+                ->whereNull('left_at')
+                ->pluck('workspace_id')
+                ->flip();
+
+            $channels = $channels->filter(fn (Channel $c) => $c->workspace_id === null || $workspaceIds->has($c->workspace_id));
+        }
+
+        $channels = $channels->values();
 
         $unread = $this->unread->counts($user, $channels->pluck('id')->all());
 

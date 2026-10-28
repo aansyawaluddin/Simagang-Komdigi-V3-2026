@@ -118,7 +118,7 @@ class TaskService
     public function allowedAssigneeIds(Workspace $workspace, array $internIds): array
     {
         if ($workspace->type === 'intern') {
-            return in_array($workspace->intern_id, $internIds, true) ? [$workspace->intern_id] : [];
+            return in_array((int) $workspace->intern_id, array_map('intval', $internIds), true) ? [$workspace->intern_id] : [];
         }
 
         return Intern::whereIn('interns.id', $internIds)

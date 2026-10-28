@@ -24,7 +24,7 @@ class ChannelUnreadService
             ->selectRaw('channel_id, count(*) as total')
             ->whereIn('channel_id', $channelIds)
             ->whereNull('deleted_at')
-            ->where('user_id', '!=', $user->id)
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', '!=', $user->id))
             ->whereRaw(
                 'id > coalesce((select cm.last_read_message_id from channel_members cm where cm.channel_id = messages.channel_id and cm.user_id = ?), 0)',
                 [$user->id]

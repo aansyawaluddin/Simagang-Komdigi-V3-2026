@@ -138,7 +138,13 @@ class TaskPolicy
     /** Komentar tugas: semua anggota yang boleh menulis di workspace. */
     public function comment(User $user, Task $task): bool
     {
-        return $this->view($user, $task) && $this->canWrite($user, $task->workspace);
+        $workspace = $task->workspace;
+
+        if ($this->isWorkspaceAdmin($user)) {
+            return ! $workspace->is_archived;
+        }
+
+        return $this->view($user, $task) && $this->canWrite($user, $workspace);
     }
 
     private function canViewWorkspace(User $user, Workspace $workspace): bool

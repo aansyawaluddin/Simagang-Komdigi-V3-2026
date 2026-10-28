@@ -138,8 +138,6 @@ class MessageController extends Controller
     /** Edit pesan sendiri; diberi tanda "diedit". */
     public function update(Request $request, Message $message): JsonResponse
     {
-        // Gate::before melewatkan super admin di Policy, tapi edit tetap hanya untuk penulis.
-        abort_unless($message->user_id === $request->user()->id, 403);
         $this->authorize('update', $message);
 
         $data = $request->validate([

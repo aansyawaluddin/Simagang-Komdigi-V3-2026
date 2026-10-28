@@ -26,7 +26,7 @@ class WorkspaceCheckDeadlinesCommand extends Command
         return self::SUCCESS;
     }
 
-    /** Lewat deadline dan belum Selesai: tandai sekali, beri tahu intern dan mentor pembuat. */
+    /** Lewat deadline dan intern masih perlu mengerjakan (belum Review/Selesai): tandai sekali, beri tahu intern dan mentor pembuat. */
     private function markOverdue(TaskService $tasks): int
     {
         $count = 0;
@@ -34,7 +34,7 @@ class WorkspaceCheckDeadlinesCommand extends Command
         Task::query()
             ->whereNull('overdue_at')
             ->where('due_at', '<', now())
-            ->where('status', '!=', TaskStatus::Done->value)
+            ->whereIn('status', [TaskStatus::Todo->value, TaskStatus::InProgress->value, TaskStatus::Revision->value])
             ->whereHas('workspace', fn ($q) => $q->where('is_archived', false))
             ->with(['assignees.user', 'creator'])
             ->chunkById(100, function ($batch) use ($tasks, &$count) {
