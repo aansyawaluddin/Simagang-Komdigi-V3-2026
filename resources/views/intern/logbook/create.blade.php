@@ -66,9 +66,6 @@
                         @enderror
                     </div>
 
-                    <!-- Tugas terkait (Workspace) -->
-                    <x-workspace.logbook-task-select :selected="old('task_id')" />
-
                     <!-- Activity Field -->
                     <div class="mb-6">
                         <label for="activity" class="block text-sm font-semibold text-gray-700 mb-2">

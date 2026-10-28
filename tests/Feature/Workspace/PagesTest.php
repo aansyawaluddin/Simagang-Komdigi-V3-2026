@@ -190,4 +190,15 @@ class PagesTest extends TestCase
             ->assertSee('2 anak magang')
             ->assertSee('Kelompok · ' . $this->gta->name);
     }
+
+    public function test_form_logbook_hanya_punya_satu_dropdown_tugas_terkait(): void
+    {
+        $taskId = $this->makeTaskForAhmad(['title' => 'Tugas untuk logbook']);
+
+        $html = $this->actingAs($this->ahmad->user)->get('/intern/logbook/create')->assertOk()->getContent();
+
+        $this->assertSame(1, substr_count($html, 'name="task_id"'), 'jangan ada dropdown ganda');
+        $this->assertStringContainsString('Tugas untuk logbook', $html);
+        $this->assertStringContainsString('value="' . $taskId . '"', $html);
+    }
 }
