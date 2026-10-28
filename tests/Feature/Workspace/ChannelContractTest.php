@@ -49,7 +49,7 @@ class ChannelContractTest extends TestCase
         $this->travel(5)->seconds();
 
         $this->actingAs($this->ahmad->user)->patchJson("/workspace/messages/{$edited}", ['body' => 'sudah diedit'])->assertOk();
-        $this->actingAs($this->ahmad->user)->deleteJson("/workspace/messages/{$deleted}")->assertNoContent();
+        $this->actingAs($this->ahmad->user)->deleteJson("/workspace/messages/{$deleted}")->assertOk()->assertJsonPath('data.is_deleted', true);
         $new = $this->sendMessage($this->rudy->user, $this->umumGta, 'pesan baru')->json('data.id');
 
         $response = $this->messages($this->siti->user, $this->umumGta, "after={$after}&since=" . urlencode($since))->assertOk();

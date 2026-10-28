@@ -85,7 +85,8 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
 
     Route::prefix('messages/{message}')->whereNumber('message')->group(function () {
         Route::patch('/', [MessageController::class, 'update'])->middleware('throttle:workspace-messages')->name('messages.update');
-        Route::delete('/', [MessageController::class, 'destroy'])->name('messages.destroy');
+        // withTrashed: hapus ulang pesan yang sudah terhapus tidak 404 (idempoten).
+        Route::delete('/', [MessageController::class, 'destroy'])->withTrashed()->name('messages.destroy');
         Route::patch('pin', [MessageController::class, 'pin'])->name('messages.pin');
         Route::get('replies', [MessageController::class, 'replies'])->name('messages.replies');
         Route::post('reactions', [MessageController::class, 'react'])->name('messages.react');

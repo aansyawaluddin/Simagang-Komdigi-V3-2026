@@ -201,9 +201,11 @@ class ChannelMessageTest extends TestCase
         $other = $this->sendMessage($this->siti->user, $this->umumGta, 'Pesan Siti')->json('data.id');
 
         $this->actingAs($this->ahmad->user)->deleteJson("/workspace/messages/{$other}")->assertForbidden();
-        $this->actingAs($this->ahmad->user)->deleteJson("/workspace/messages/{$own}")->assertNoContent();
-        $this->actingAs($this->rudy->user)->deleteJson("/workspace/messages/{$other}")->assertNoContent();
-        $this->actingAs($this->herman->user)->deleteJson("/workspace/messages/{$other}")->assertNotFound();
+        $this->actingAs($this->ahmad->user)->deleteJson("/workspace/messages/{$own}")->assertOk()->assertJsonPath('data.is_deleted', true)->assertJsonPath('data.body', null);
+        $this->actingAs($this->rudy->user)->deleteJson("/workspace/messages/{$other}")->assertOk()->assertJsonPath('data.is_deleted', true);
+        // hapus ulang idempoten untuk yang berhak; orang luar tetap ditolak
+        $this->actingAs($this->rudy->user)->deleteJson("/workspace/messages/{$other}")->assertOk()->assertJsonPath('data.is_deleted', true);
+        $this->actingAs($this->herman->user)->deleteJson("/workspace/messages/{$other}")->assertForbidden();
 
         $this->assertSoftDeleted('messages', ['id' => $own]);
 

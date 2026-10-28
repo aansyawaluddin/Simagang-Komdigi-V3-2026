@@ -255,14 +255,20 @@ class MessageController extends Controller
         return $this->respond($message->channel, $message);
     }
 
-    /** Soft delete: pesan tampil sebagai "pesan dihapus". */
+    /**
+     * Soft delete: pesan tampil sebagai "pesan dihapus". Membalas `{data: Message}` dengan
+     * `is_deleted: true`. Idempoten: menghapus pesan yang sudah terhapus membalas hal yang sama
+     * (klik ganda tidak menghasilkan 404), asalkan user berhak menghapusnya.
+     */
     public function destroy(Message $message): JsonResponse
     {
         $this->authorize('delete', $message);
 
-        $message->delete();
+        if (! $message->trashed()) {
+            $message->delete();
+        }
 
-        return response()->json(null, 204);
+        return $this->respond($message->channel, $message);
     }
 
     /** Pin / lepas pin pesan: moderator saja. */
