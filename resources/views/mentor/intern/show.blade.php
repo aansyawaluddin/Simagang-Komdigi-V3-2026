@@ -136,6 +136,9 @@
             </div>
         </div>
 
+        {{-- Tugas di Workspace (hanya bila modul Workspace aktif) --}}
+        <x-workspace.intern-tasks :intern-id="$intern->id" class="mb-6" />
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div class="bg-white rounded-2xl shadow-md border border-blue-100 overflow-hidden">
                 <div class="bg-blue-600 px-6 py-4">

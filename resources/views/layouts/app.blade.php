@@ -4,11 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @php
+        // Workspace: aktif untuk admin (super_admin/admin_full), mentor, dan intern bila route-nya terdaftar.
+        // $wsMock = true selama routes/workspace-preview.php dimuat (APP_ENV=local, sebelum backend siap).
+        $wsUser = auth()->user();
+        $wsRole = match (true) {
+            ! $wsUser => null,
+            $wsUser->isSuperAdmin() || $wsUser->isAdminFull() => 'admin',
+            $wsUser->isMentor() => 'mentor',
+            $wsUser->isIntern() => 'intern',
+            default => null,
+        };
+        $wsEnabled = $wsRole !== null && Route::has('workspace.index');
+        $wsMock = $wsEnabled && Route::has('workspace.preview.components');
+    @endphp
     <title>@yield('title', 'Sistem Manajemen Peserta Magang')</title>
     <link rel="icon" type="image/png" href="{{ url('storage/vendor/icon-komdigi.png') }}">
     <link rel="shortcut icon" href="{{ url('storage/vendor/icon-komdigi.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    @include('layouts.partials.workspace-head')
     @stack('styles')
     <style>
         @font-face {
@@ -111,6 +126,7 @@
                             <i class="fas fa-home w-5 mr-3"></i>
                             Dashboard
                         </a>
+                        @include('layouts.partials.workspace-nav-link')
 
                         @if(session('session_expired'))
                             <div id="session-expired-modal" class="fixed inset-0 z-[100] flex items-center justify-center px-4">
@@ -318,6 +334,7 @@ Aktivitas Terbaru
                             <i class="fas fa-home w-5 mr-3"></i>
                             Dashboard Mentor
                         </a>
+                        @include('layouts.partials.workspace-nav-link')
                         <a href="{{ route('mentor.intern.index') }}" class="{{ request()->routeIs('mentor.intern.*') ? 'bg-blue-50 border-r-4 border-blue-500 text-blue-700' : 'text-gray-600 hover:bg-gray-50' }} flex items-center px-4 py-3 text-sm font-medium">
                             <i class="fas fa-users w-5 mr-3"></i>
                             Anak Bimbingan
@@ -436,6 +453,7 @@ Aktivitas Terbaru
                             <i class="fas fa-home w-5 mr-3"></i>
                             Dashboard
                         </a>
+                        @include('layouts.partials.workspace-nav-link')
                         <a href="{{ route('intern.attendance.index') }}" class="{{ request()->routeIs('intern.attendance.*') ? 'bg-blue-50 border-r-4 border-blue-500 text-blue-700' : 'text-gray-600 hover:bg-gray-50' }} flex items-center px-4 py-3 text-sm font-medium">
                             <i class="fas fa-calendar-check w-5 mr-3"></i>
                             Absensi
@@ -533,12 +551,18 @@ Aktivitas Terbaru
         ============================ -->
         <div class="flex-1 flex flex-col overflow-hidden">
 
+            @include('layouts.partials.workspace-topbar')
+
             <!-- Top Header (Mobile) -->
             <header class="lg:hidden bg-white shadow-sm">
                 <div class="flex items-center justify-between p-4">
                     <div class="flex items-center">
                         <img src="{{ url('storage/vendor/logo_komdigi.png') }}" alt="Logo" class="object-contain" style="width: 60px; height: 60px"/>
                     </div>
+                    <div class="flex items-center gap-1">
+                    @if ($wsEnabled)
+                        <x-workspace.notification-bell />
+                    @endif
                     <button type="button" id="mobile-menu-button" class="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
                         <svg class="h-6 w-6" id="icon-menu" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -547,6 +571,7 @@ Aktivitas Terbaru
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
+                    </div>
                 </div>
             </header>
 
@@ -582,6 +607,7 @@ Aktivitas Terbaru
                                     <i class="fas fa-home w-5 mr-3"></i>
                                     Dashboard
                                 </a>
+                                @include('layouts.partials.workspace-nav-link')
 
                                 {{-- Manajemen Pengguna --}}
                                 <div x-data="{ open: {{ request()->routeIs('admin.accounts.*', 'admin.mentor.*', 'admin.intern.*', 'admin.mitra.*', 'admin.team.*') ? 'true' : 'false' }} }" class="mt-1">
@@ -716,6 +742,7 @@ Aktivitas Terbaru
                                     <i class="fas fa-home w-5 mr-3"></i>
                                     Dashboard Mentor
                                 </a>
+                                @include('layouts.partials.workspace-nav-link')
                                 <a href="{{ route('mentor.intern.index') }}" class="{{ request()->routeIs('mentor.intern.*') ? 'bg-blue-50 border-r-4 border-blue-500 text-blue-700' : 'text-gray-600' }} flex items-center px-4 py-3 text-sm font-medium">
                                     <i class="fas fa-users w-5 mr-3"></i>
                                     Anak Bimbingan
@@ -832,6 +859,7 @@ Aktivitas Terbaru
                                     <i class="fas fa-home w-5 mr-3"></i>
                                     Dashboard
                                 </a>
+                                @include('layouts.partials.workspace-nav-link')
                                 <a href="{{ route('intern.attendance.index') }}" class="{{ request()->routeIs('intern.attendance.*') ? 'bg-blue-50 border-r-4 border-blue-500 text-blue-700' : 'text-gray-600' }} flex items-center px-4 py-3 text-sm font-medium">
                                     <i class="fas fa-calendar-check w-5 mr-3"></i>
                                     Absensi
@@ -972,6 +1000,9 @@ Aktivitas Terbaru
         </div>
     </div>
 
+    @if ($wsEnabled)
+        <x-workspace.toasts />
+    @endif
     @stack('scripts')
     <script>
         (function () {

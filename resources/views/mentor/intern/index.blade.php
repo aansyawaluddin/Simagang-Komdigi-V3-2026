@@ -343,7 +343,7 @@
                                 placeholder="Cari nama anak magang...">
                         </div>
 
-                        <select name="status" class="filter-select">
+                        <select name="status" class="filter-select" aria-label="Filter status">
                             <option value="" {{ request('status') == '' ? 'selected' : '' }}>Semua</option>
                             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Aktif</option>
                             <option value="alumni" {{ request('status') == 'alumni' ? 'selected' : '' }}>Alumni</option>
@@ -364,7 +364,9 @@
         </div>
 
         {{-- ── INTERNS TABLE PANEL ──────────────────────– --}}
-        <div class="panel a2">
+        {{-- Workspace aktif: centang anak bimbingan → "Buat kelompok"; kolom Kelompok dari WS.api.groups.roster(). --}}
+        @php($wsGroups = Route::has('workspace.groups.roster'))
+        <div class="panel a2" @if ($wsGroups) x-data="wsInternGroups" @endif>
             <div class="panel-header">
                 <i class="fas fa-users-cog text-blue-200"></i>
                 <h2>Daftar Anak Magang</h2>
@@ -377,9 +379,15 @@
                     <table>
                         <thead>
                             <tr>
+                                @if ($wsGroups)
+                                    <th class="w-10"><span class="sr-only">Pilih</span></th>
+                                @endif
                                 <th>Foto</th>
                                 <th>Nama</th>
                                 <th>Status</th>
+                                @if ($wsGroups)
+                                    <th class="hidden sm:table-cell">Kelompok</th>
+                                @endif
                                 <th class="hidden sm:table-cell">Institusi</th>
                                 <th>Logbook</th>
                                 <th>Absensi</th>
@@ -389,6 +397,13 @@
                         <tbody>
                             @forelse($interns as $intern)
                                 <tr>
+                                    @if ($wsGroups)
+                                        <td>
+                                            <input type="checkbox" class="w-4 h-4 accent-indigo-600 align-middle"
+                                                   :checked="selected.includes({{ $intern->id }})" :disabled="!selectable({{ $intern->id }})"
+                                                   x-on:change="toggle({{ $intern->id }})" aria-label="Pilih {{ $intern->name }}">
+                                        </td>
+                                    @endif
                                     <td>
                                         @if ($intern->photo_path)
                                             <img src="{{ url('storage/' . $intern->photo_path) }}"
@@ -404,6 +419,23 @@
                                             style="color:#3b4fd8; font-weight:600; text-decoration:none; transition:all .2s;">
                                             {{ $intern->name }}
                                         </a>
+                                        @if ($wsGroups)
+                                            {{-- HP: kolom Kelompok disembunyikan, isinya tampil di bawah nama --}}
+                                            <div class="ws-font sm:hidden mt-1.5">
+                                                <template x-if="loaded && group({{ $intern->id }})">
+                                                    <a :href="group({{ $intern->id }}).url" class="ws-group-chip">
+                                                        <span class="ws-group-dot" :style="{ background: group({{ $intern->id }}).color }" aria-hidden="true"></span>
+                                                        <span class="truncate" x-text="group({{ $intern->id }}).name"></span>
+                                                    </a>
+                                                </template>
+                                                <template x-if="loaded && selectable({{ $intern->id }})">
+                                                    <button type="button" class="ws-chip-person__action"
+                                                            x-on:click="$dispatch('ws-group-assign', { intern: { id: {{ $intern->id }}, name: @js($intern->name) } })">
+                                                        Masukkan ke kelompok
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>
                                         @if ($intern->is_active)
@@ -416,6 +448,24 @@
                                             </span>
                                         @endif
                                     </td>
+                                    @if ($wsGroups)
+                                        <td class="ws-font hidden sm:table-cell">
+                                            <span x-show="!loaded" class="text-xs text-slate-400">…</span>
+                                            <template x-if="loaded && group({{ $intern->id }})">
+                                                <a :href="group({{ $intern->id }}).url" class="ws-group-chip">
+                                                    <span class="ws-group-dot" :style="{ background: group({{ $intern->id }}).color }" aria-hidden="true"></span>
+                                                    <span class="truncate" x-text="group({{ $intern->id }}).name"></span>
+                                                </a>
+                                            </template>
+                                            <template x-if="loaded && selectable({{ $intern->id }})">
+                                                <button type="button" class="ws-chip-person__action"
+                                                        x-on:click="$dispatch('ws-group-assign', { intern: { id: {{ $intern->id }}, name: @js($intern->name) } })">
+                                                    Masukkan ke kelompok
+                                                </button>
+                                            </template>
+                                            <span x-show="loaded && !group({{ $intern->id }}) && !selectable({{ $intern->id }})" class="text-xs text-slate-400">—</span>
+                                        </td>
+                                    @endif
                                     <td class="hidden sm:table-cell">
                                         <span style="color:#6b7280; font-size:12px;">{{ $intern->institution }}</span>
                                     </td>
@@ -440,7 +490,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7">
+                                    <td colspan="{{ $wsGroups ? 9 : 7 }}">
                                         <div class="empty-state">
                                             <i class="fas fa-inbox"></i>
                                             <p class="font-semibold text-sm">Belum ada anak magang</p>
@@ -458,8 +508,21 @@
                         {{ $interns->links() }}
                     </div>
                 @endif
+
+                @if ($wsGroups)
+                    <div class="ws-selection-bar ws-font" x-show="selected.length" x-cloak x-transition.opacity role="region" aria-label="Aksi anak magang terpilih">
+                        <span class="text-sm font-semibold" x-text="selected.length + ' anak magang dipilih'"></span>
+                        <button type="button" class="text-sm text-indigo-200 hover:text-white underline" x-on:click="selected = []">Batal</button>
+                        <button type="button" class="ws-btn ws-btn--sm ml-auto" style="background:#fff;color:#312e81;" x-on:click="create()">
+                            <i class="fas fa-users"></i> Buat kelompok
+                        </button>
+                    </div>
+                @endif
             </div>
         </div>
+        @if ($wsGroups)
+            @include('workspace.partials.group-modals')
+        @endif
 
         {{-- ── QUICK ACTION CARDS ────────────────────────– --}}
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-top:28px;" class="a2">

@@ -1,0 +1,2454 @@
+/*
+ * Workspace — design token & komponen dasar.
+ * Mengikuti gaya halaman logbook/dashboard: Plus Jakarta Sans, panel rounded 20px, hero gradient biru.
+ * Semua class diawali "ws-" supaya tidak bentrok dengan style halaman lain.
+ */
+
+:root {
+    --ws-navy: #0f2878;
+    --ws-primary: #2d3ecb;
+    --ws-indigo: #4f46e5;
+    --ws-primary-soft: #f0f4ff;
+    --ws-primary-border: #e0e7ff;
+    --ws-text: #1f2937;
+    --ws-muted: #64748b;
+    --ws-faint: #5f6f86; /* ≥ 4,5:1 di semua latar workspace (WCAG AA) */
+    --ws-line: #e8eeff;
+    --ws-surface: #ffffff;
+    --ws-surface-2: #f8faff;
+    --ws-radius: 20px;
+    --ws-radius-sm: 12px;
+    --ws-shadow: 0 1px 3px rgba(30, 58, 138, 0.06), 0 4px 20px rgba(30, 58, 138, 0.06);
+    --ws-shadow-lg: 0 20px 60px rgba(30, 58, 138, 0.18);
+}
+
+/* ---------- Halaman ---------- */
+
+/* .ws-font dipakai juga oleh modal/slide-over yang di-teleport ke <body>. */
+.ws-page,
+.ws-font {
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.ws-page {
+    color: var(--ws-text);
+    min-height: 100%;
+    background: linear-gradient(135deg, #e8eeff 0%, #f0f4ff 40%, #e4ecff 100%);
+}
+
+.ws-mono {
+    font-family: 'DM Mono', ui-monospace, monospace;
+}
+
+/* Teks sekunder yang tetap lolos kontras WCAG AA (pengganti text-slate-400 di area workspace). */
+.ws-text-faint {
+    color: var(--ws-faint);
+}
+
+.ws-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ws-faint);
+}
+
+/* ---------- Hero ---------- */
+
+.ws-hero {
+    background: linear-gradient(110deg, var(--ws-navy) 0%, var(--ws-primary) 55%, var(--ws-indigo) 100%);
+    border-radius: var(--ws-radius);
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+}
+
+.ws-hero::before,
+.ws-hero::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.ws-hero::before {
+    top: -80px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ws-hero::after {
+    bottom: -100px;
+    left: 25%;
+    width: 320px;
+    height: 320px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ws-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ---------- Panel & tile ---------- */
+
+.ws-panel {
+    background: var(--ws-surface);
+    border-radius: var(--ws-radius);
+    padding: 24px;
+    box-shadow: var(--ws-shadow);
+}
+
+.ws-tile {
+    background: var(--ws-surface-2);
+    border: 1px solid var(--ws-line);
+    border-radius: 14px;
+    padding: 14px 18px;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.ws-tile:hover {
+    background: #eff2ff;
+    border-color: #c7d2fe;
+}
+
+/* ---------- Kartu workspace ---------- */
+
+.ws-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--ws-surface);
+    border-radius: var(--ws-radius);
+    padding: 20px;
+    box-shadow: var(--ws-shadow);
+    border: 1px solid transparent;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+a.ws-card:hover,
+a.ws-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(59, 79, 216, 0.16);
+    border-color: #c7d2fe;
+    outline: none;
+}
+
+.ws-card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 18px;
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+}
+
+.ws-progress {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ws-progress__bar {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+}
+
+.ws-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #eef2ff;
+    color: #4f46e5;
+}
+
+.ws-pill--alert {
+    background: #dc2626;
+    color: #fff;
+}
+
+/* Tombol semi-transparan di atas hero */
+.ws-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background .2s ease;
+}
+
+.ws-hero-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- Statistik ---------- */
+
+.ws-stat {
+    background: var(--ws-surface);
+    border-radius: 16px;
+    padding: 14px 16px 16px;
+    box-shadow: var(--ws-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.ws-stat::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--stat-color, #3b82f6);
+}
+
+.ws-stat__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ws-faint);
+}
+
+.ws-stat__value {
+    margin-top: 4px;
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--ws-text);
+    line-height: 1.2;
+}
+
+/* ---------- Tab ---------- */
+
+.ws-tabs {
+    position: relative; /* offsetParent untuk revealTab() di workspace.js */
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid var(--ws-primary-border);
+    border-radius: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.ws-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.ws-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ws-muted);
+    white-space: nowrap;
+    transition: background .15s ease, color .15s ease;
+}
+
+.ws-tab:hover {
+    color: var(--ws-text);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.ws-tab[aria-selected="true"] {
+    background: #fff;
+    color: #3b4fd8;
+    box-shadow: 0 1px 3px rgba(30, 58, 138, 0.12);
+}
+
+.ws-tab:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 1px;
+}
+
+.ws-tab__count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    background: #eef2ff;
+    color: #4f46e5;
+}
+
+.ws-tab__count--alert {
+    background: #dc2626;
+    color: #fff;
+}
+
+/* ---------- Timeline aktivitas ---------- */
+
+.ws-timeline {
+    position: relative;
+    margin-left: 14px;
+    border-left: 2px solid #e8eeff;
+}
+
+.ws-timeline__item {
+    position: relative;
+    padding-left: 28px;
+}
+
+.ws-timeline__dot {
+    position: absolute;
+    left: -15px;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    box-shadow: 0 0 0 4px #fff;
+}
+
+/* ---------- Board kanban ---------- */
+
+.ws-board {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(272px, 1fr);
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 96px; /* ruang untuk menu kartu terakhir */
+    scroll-snap-type: x proximity;
+}
+
+@media (max-width: 639px) {
+    .ws-board {
+        grid-auto-columns: 86%;
+        scroll-snap-type: x mandatory;
+    }
+}
+
+.ws-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid #e0e7ff;
+    border-radius: 18px;
+    scroll-snap-align: start;
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.ws-column--target {
+    border-color: #a5b4fc;
+    background: rgba(238, 242, 255, 0.85);
+}
+
+.ws-column__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 12px 8px 14px;
+}
+
+.ws-column__head h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.ws-column__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.ws-column__count {
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--ws-faint);
+}
+
+.ws-column__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 10px 12px;
+    min-height: 120px;
+    flex: 1;
+}
+
+.ws-column__empty {
+    border: 1.5px dashed #dbe3ff;
+    border-radius: 14px;
+    padding: 18px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ws-faint);
+}
+
+.ws-icon-btn--sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+/* ---------- Kartu tugas ---------- */
+
+.ws-task-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid #edf1ff;
+    border-radius: 14px;
+    padding: 12px 12px 10px;
+    box-shadow: 0 1px 2px rgba(30, 58, 138, 0.06);
+    cursor: grab;
+    transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.ws-task-card:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 6px 16px rgba(59, 79, 216, 0.12);
+}
+
+.ws-task-card:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
+}
+
+.ws-task-card--locked {
+    cursor: pointer;
+}
+
+.ws-task-card--ghost {
+    opacity: .35;
+    background: #eef2ff;
+    border-style: dashed;
+}
+
+.ws-task-card--chosen {
+    box-shadow: 0 12px 28px rgba(59, 79, 216, 0.22);
+}
+
+.ws-task-card--drag {
+    transform: rotate(2deg);
+}
+
+.ws-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ws-muted);
+    white-space: nowrap;
+}
+
+.ws-due--soon { color: #b45309; }
+.ws-due--overdue { color: #dc2626; }
+
+.ws-label-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.ws-label-chip__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+}
+
+.ws-meta-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ws-faint);
+}
+
+/* ---------- Menu kecil ---------- */
+
+.ws-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    min-width: 190px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #eef2ff;
+    border-radius: 12px;
+    box-shadow: var(--ws-shadow-lg);
+}
+
+.ws-menu__label {
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ws-faint);
+}
+
+.ws-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    text-align: left;
+}
+
+.ws-menu__item:hover,
+.ws-menu__item:focus-visible {
+    background: var(--ws-primary-soft);
+    color: #3b4fd8;
+    outline: none;
+}
+
+.ws-menu__item--danger:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+/* ---------- Chip pilihan (assignee, label, filter status) ---------- */
+
+.ws-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 6px;
+    border-radius: 999px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    transition: all .15s ease;
+}
+
+.ws-chip--plain {
+    padding-left: 12px;
+}
+
+.ws-chip:hover {
+    border-color: #a5b4fc;
+}
+
+.ws-chip[aria-pressed="true"] {
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+/* ---------- Tabel ---------- */
+
+.ws-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+.ws-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ws-faint);
+    border-bottom: 1px solid #eef2ff;
+    white-space: nowrap;
+}
+
+.ws-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.ws-table tbody tr {
+    cursor: pointer;
+    transition: background .12s ease;
+}
+
+.ws-table tbody tr:hover {
+    background: #f8faff;
+}
+
+.ws-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    font-weight: inherit;
+}
+
+.ws-sort-btn:hover {
+    color: #3b4fd8;
+}
+
+/* ---------- Konten markdown (dirender server) ---------- */
+
+.ws-prose {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #334155;
+    overflow-wrap: anywhere;
+}
+
+.ws-prose > * + * { margin-top: .6em; }
+.ws-prose ul { list-style: disc; padding-left: 1.3em; }
+.ws-prose ol { list-style: decimal; padding-left: 1.3em; }
+.ws-prose a { color: #4f46e5; text-decoration: underline; text-underline-offset: 2px; }
+.ws-prose strong { color: var(--ws-text); }
+.ws-prose code {
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: .9em;
+    background: #f1f5f9;
+    padding: 1px 6px;
+    border-radius: 6px;
+}
+
+/* ---------- Uploader ---------- */
+
+.ws-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px;
+    border: 1.5px dashed #c7d2fe;
+    border-radius: 14px;
+    background: #f8faff;
+    text-align: center;
+    font-size: 13px;
+    color: var(--ws-muted);
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.ws-dropzone:hover,
+.ws-dropzone--active {
+    border-color: #6366f1;
+    background: #eef2ff;
+}
+
+/* ---------- Detail tugas ---------- */
+
+.ws-detail-section + .ws-detail-section {
+    margin-top: 24px;
+}
+
+.ws-detail-meta {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 14px;
+    font-size: 14px;
+}
+
+.ws-detail-meta dt {
+    color: var(--ws-faint);
+    font-size: 13px;
+    padding-top: 2px;
+}
+
+/* ---------- Tombol ---------- */
+
+.ws-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--ws-radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+    border: 1.5px solid transparent;
+    transition: all .2s ease;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ws-btn:disabled,
+.ws-btn[aria-disabled="true"] {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.ws-btn--primary {
+    background: linear-gradient(110deg, #1e3a8a, #3b4fd8);
+    color: #fff;
+}
+
+.ws-btn--primary:hover {
+    box-shadow: 0 6px 16px rgba(59, 79, 216, 0.3);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.ws-btn--soft {
+    background: var(--ws-primary-soft);
+    border-color: var(--ws-primary-border);
+    color: #3b4fd8;
+}
+
+.ws-btn--soft:hover {
+    background: #e8eeff;
+    border-color: #a5b4fc;
+}
+
+.ws-btn--ghost {
+    background: transparent;
+    color: var(--ws-muted);
+}
+
+.ws-btn--ghost:hover {
+    background: #f1f5f9;
+    color: var(--ws-text);
+}
+
+.ws-btn--danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.ws-btn--danger:hover {
+    background: #fee2e2;
+}
+
+.ws-btn--sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 10px;
+}
+
+.ws-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: var(--ws-muted);
+    transition: background .15s ease, color .15s ease;
+    position: relative;
+}
+
+.ws-icon-btn:hover {
+    background: var(--ws-primary-soft);
+    color: var(--ws-primary);
+}
+
+/* ---------- Badge status & prioritas ---------- */
+
+.ws-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.ws-badge__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.ws-status--todo        { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.ws-status--in_progress { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.ws-status--review      { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.ws-status--revision    { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.ws-status--done        { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+
+.ws-priority--low    { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+.ws-priority--medium { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+.ws-priority--high   { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.ws-priority--urgent { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+
+.ws-badge--late { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+
+/* ---------- Avatar ---------- */
+
+.ws-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    overflow: hidden;
+    flex-shrink: 0;
+    color: #fff;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.ws-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ws-avatar--xs { width: 24px; height: 24px; font-size: 10px; }
+.ws-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
+.ws-avatar--md { width: 40px; height: 40px; font-size: 14px; }
+.ws-avatar--lg { width: 56px; height: 56px; font-size: 18px; }
+
+.ws-avatar-stack {
+    display: inline-flex;
+}
+
+.ws-avatar-stack > * + * {
+    margin-left: -6px;
+}
+
+.ws-avatar-stack > .ws-avatar--xs + * {
+    margin-left: -4px;
+}
+
+/* ---------- Form ---------- */
+
+.ws-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.ws-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--ws-radius-sm);
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    font-size: 14px;
+    color: var(--ws-text);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ws-input:focus {
+    outline: none;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.ws-input--error {
+    border-color: #f87171;
+}
+
+.ws-field-error {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #dc2626;
+}
+
+/* ---------- Overlay: modal & slide-over ---------- */
+
+.ws-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(3px);
+}
+
+.ws-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 61;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    pointer-events: none;
+}
+
+/* Box flex-kolom: hanya __body yang scroll, header & footer tetap terlihat. */
+.ws-modal__box {
+    pointer-events: auto;
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+    border-radius: var(--ws-radius);
+    box-shadow: var(--ws-shadow-lg);
+}
+
+.ws-modal__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ws-slideover {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 61;
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    box-shadow: var(--ws-shadow-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 640px) {
+    .ws-slideover {
+        border-radius: var(--ws-radius) 0 0 var(--ws-radius);
+    }
+}
+
+/* ---------- Top bar & lonceng ---------- */
+
+/* z-index wajib: backdrop-filter membuat stacking context, tanpa ini dropdown tertutup konten ber-transform di bawahnya. */
+.ws-topbar {
+    position: relative;
+    z-index: 40;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #eef2ff;
+}
+
+.ws-count-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.ws-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 55;
+    width: min(380px, calc(100vw - 32px));
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #eef2ff;
+    box-shadow: var(--ws-shadow-lg);
+    overflow: hidden;
+}
+
+/* Di HP lonceng tidak berada di tepi kanan, jadi dropdown dibuat fixed selebar layar.
+   --ws-dropdown-top diisi JS dari posisi tombol (notifications.js). */
+@media (max-width: 639px) {
+    .ws-dropdown {
+        position: fixed;
+        top: var(--ws-dropdown-top, 72px);
+        left: 16px;
+        right: 16px;
+        width: auto;
+    }
+}
+
+/* ---------- Toast ---------- */
+
+.ws-toasts {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 70;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(360px, calc(100vw - 32px));
+}
+
+.ws-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #eef2ff;
+    box-shadow: var(--ws-shadow-lg);
+    font-size: 14px;
+}
+
+/* ---------- Channel (Fase 1C) ---------- */
+
+/* Panel setinggi layar; daftar channel dan pesan di-scroll masing-masing. */
+.ws-chat {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    /* --ws-chat-h dihitung channels.js (tinggi <main> dikurangi baris tab); nilai cadangan sebelum JS jalan. */
+    height: var(--ws-chat-h, max(520px, calc(100vh - 160px)));
+    background: var(--ws-surface);
+    border-radius: var(--ws-radius);
+    box-shadow: var(--ws-shadow);
+    overflow: hidden;
+}
+
+.ws-chat__side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--ws-surface-2);
+    border-right: 1px solid var(--ws-line);
+}
+
+.ws-chat__side-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 18px 12px;
+}
+
+.ws-chat__side-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 10px 16px;
+}
+
+.ws-chan {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #475569;
+    transition: background .15s ease, color .15s ease;
+}
+
+.ws-chan:hover { background: #eef2ff; color: #1e293b; }
+.ws-chan--unread { font-weight: 700; color: #0f172a; }
+.ws-chan--active,
+.ws-chan--active:hover { background: var(--ws-primary); color: #fff; font-weight: 600; }
+
+.ws-chan__icon {
+    width: 20px;
+    display: inline-flex;
+    justify-content: center;
+    font-size: 13px;
+    opacity: .7;
+    flex-shrink: 0;
+}
+
+.ws-chan--active .ws-chan__icon { opacity: 1; }
+
+.ws-chan__badge {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.ws-chan--active .ws-chan__badge { background: #fff; color: var(--ws-primary); }
+.ws-chan__badge--muted { background: #e2e8f0; color: #334155; }
+
+.ws-chat__main {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.ws-chat__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--ws-line);
+    flex-shrink: 0;
+}
+
+.ws-chat__head-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--ws-primary-soft);
+    color: var(--ws-primary);
+    flex-shrink: 0;
+}
+
+.ws-chat__body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ws-chat__scroll {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 12px 12px;
+}
+
+.ws-chat__intro {
+    padding: 28px 8px 12px;
+}
+
+.ws-chat__intro-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: var(--ws-primary-soft);
+    color: var(--ws-primary);
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.ws-chat__day,
+.ws-chat__new {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 8px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ws-faint);
+}
+
+.ws-chat__day::before,
+.ws-chat__day::after,
+.ws-chat__new::before,
+.ws-chat__new::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--ws-line);
+}
+
+.ws-chat__day span {
+    padding: 2px 10px;
+    border: 1px solid var(--ws-line);
+    border-radius: 999px;
+    background: #fff;
+}
+
+.ws-chat__new { color: #dc2626; }
+.ws-chat__new::before,
+.ws-chat__new::after { background: #fecaca; }
+
+/* Pesan */
+.ws-msg {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 12px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    border-radius: 12px;
+    transition: background .2s ease;
+}
+
+.ws-msg--compact { padding-top: 2px; padding-bottom: 2px; margin-top: 0; }
+.ws-msg:hover { background: #f8faff; }
+.ws-msg--mention { background: #fffbeb; box-shadow: inset 3px 0 0 #f59e0b; }
+.ws-msg--mention:hover { background: #fef3c7; }
+.ws-msg--flash { animation: ws-flash 2.4s ease; }
+.ws-msg--pending { opacity: .65; }
+
+@keyframes ws-flash {
+    0%, 60% { background: #e0e7ff; }
+    100% { background: transparent; }
+}
+
+.ws-msg__gutter { display: flex; justify-content: center; }
+
+.ws-msg__hover-time {
+    visibility: hidden;
+    padding-top: 3px;
+    font-size: 10px;
+    line-height: 1.6;
+    color: var(--ws-faint);
+    white-space: nowrap;
+}
+
+.ws-msg:hover .ws-msg__hover-time { visibility: visible; }
+
+.ws-msg__head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    font-size: 14px;
+}
+
+.ws-msg__role {
+    padding: 0 7px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    flex-shrink: 0;
+}
+
+.ws-msg__role--mentor { background: #eef2ff; color: #4338ca; }
+.ws-msg__role--admin { background: #ecfeff; color: #0e7490; }
+.ws-msg__role--system { background: #f1f5f9; color: #475569; }
+
+.ws-msg__body { font-size: 14px; line-height: 1.6; }
+.ws-msg__body > * + * { margin-top: .35em; }
+.ws-msg__body--edited > :last-child::after {
+    content: ' (diedit)';
+    font-size: 11px;
+    color: var(--ws-faint);
+}
+
+.ws-msg__deleted {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ws-faint);
+}
+
+.ws-msg__failed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #dc2626;
+}
+
+.ws-avatar--system { background: #e0e7ff; color: #4338ca; font-size: 15px; }
+
+.ws-mention {
+    padding: 0 3px;
+    border-radius: 5px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 600;
+}
+
+.ws-mention--all { background: #fef3c7; color: #b45309; }
+
+.ws-prose a.ws-task-ref {
+    font-family: 'DM Mono', ui-monospace, monospace;
+    font-size: .92em;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 0 4px;
+    border-radius: 5px;
+    background: #f0f4ff;
+}
+
+.ws-prose a.ws-task-ref:hover { background: #e0e7ff; }
+
+.ws-msg__files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.ws-msg__image {
+    display: block;
+    max-width: min(320px, 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--ws-line);
+}
+
+/* contain: screenshot yang tinggi tidak terpotong; gambar sangat kecil tetap punya bidang yang bisa diklik. */
+.ws-msg__image img {
+    display: block;
+    width: 100%;
+    min-width: 96px;
+    height: auto;
+    min-height: 72px;
+    max-height: 220px;
+    object-fit: contain;
+    background: var(--ws-surface-2);
+}
+
+.ws-msg__file {
+    display: flex;
+    align-items: center;
+    width: min(280px, 100%);
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--ws-line);
+    background: #fff;
+}
+
+.ws-msg__file:hover { border-color: #c7d2fe; }
+
+.ws-msg__actions {
+    position: absolute;
+    top: 2px;
+    right: 8px;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+
+.ws-msg__actions > .ws-icon-btn { background: #fff; border: 1px solid var(--ws-line); box-shadow: 0 1px 2px rgba(30, 58, 138, .08); }
+.ws-msg:hover .ws-msg__actions,
+.ws-msg__actions:focus-within { opacity: 1; }
+
+/* Layar sentuh: tidak ada hover, tombol aksi selalu terlihat (samar). */
+@media (hover: none) {
+    .ws-msg__actions { opacity: .75; }
+    .ws-msg__actions > .ws-icon-btn { background: transparent; border-color: transparent; box-shadow: none; }
+}
+
+.ws-menu--up { top: auto; bottom: calc(100% + 4px); }
+
+.ws-chat__jump {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+.ws-chat__jump-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--ws-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: var(--ws-shadow-lg);
+}
+
+/* Komposer */
+.ws-composer {
+    flex-shrink: 0;
+    padding: 0 16px 16px;
+}
+
+.ws-composer__box {
+    position: relative;
+    border: 1.5px solid #dbe3ff;
+    border-radius: 16px;
+    background: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ws-composer__box:focus-within { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(99, 102, 241, .15); }
+.ws-composer__box--drag { border-style: dashed; border-color: var(--ws-primary); background: var(--ws-primary-soft); }
+
+.ws-composer__input {
+    display: block;
+    width: 100%;
+    max-height: 168px;
+    padding: 12px 14px 4px;
+    border: 0;
+    background: transparent;
+    resize: none;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ws-text);
+}
+
+.ws-composer__input:focus { outline: none; box-shadow: none; }
+
+.ws-composer__bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px 8px;
+}
+
+.ws-composer__files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 10px 0;
+}
+
+.ws-composer__file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 240px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 10px;
+    background: var(--ws-surface-2);
+    border: 1px solid var(--ws-line);
+}
+
+.ws-composer__file--error { background: #fef2f2; border-color: #fecaca; }
+
+.ws-composer-note {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 16px 16px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: var(--ws-surface-2);
+    border: 1px dashed #dbe3ff;
+    font-size: 13px;
+    color: var(--ws-muted);
+}
+
+.ws-kbd {
+    padding: 0 4px;
+    border: 1px solid #e2e8f0;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 10px;
+}
+
+.ws-suggest {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: calc(100% + 6px);
+    z-index: 20;
+    max-width: 380px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #eef2ff;
+    border-radius: 12px;
+    box-shadow: var(--ws-shadow-lg);
+}
+
+.ws-suggest__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.ws-suggest__item--active { background: var(--ws-primary-soft); }
+
+.ws-suggest__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+/* ---------- Channel Fase 2: panel samping (thread / cari / disematkan), pin, kelola ---------- */
+
+.ws-chat { position: relative; }
+
+.ws-chat__panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: #fff;
+    border-left: 1px solid var(--ws-line);
+}
+
+/* Layar lebar: kolom ketiga. Lebih sempit: laci di atas percakapan. */
+@media (min-width: 1440px) {
+    .ws-chat--panel { grid-template-columns: 264px minmax(0, 1fr) 360px; }
+}
+
+@media (max-width: 1439px) {
+    .ws-chat__panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 15;
+        width: min(400px, 100%);
+        box-shadow: var(--ws-shadow-lg);
+    }
+}
+
+.ws-chat__panel-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--ws-line);
+    flex-shrink: 0;
+}
+
+.ws-chat__panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 10px 12px;
+}
+
+.ws-icon-btn--on { background: var(--ws-primary-soft); color: var(--ws-primary); }
+
+.ws-chat__pin-count {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--ws-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.ws-chat__result {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    text-align: left;
+}
+
+.ws-chat__result:hover { background: #f8faff; }
+
+.ws-chat__result-tag {
+    padding: 0 6px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+}
+
+.ws-chat__pinned {
+    padding: 12px 14px;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    background: #fffdf5;
+}
+
+.ws-mark { background: #fef08a; color: inherit; border-radius: 3px; padding: 0 1px; }
+
+.ws-msg--pinned { background: #fffdf5; }
+
+.ws-msg__pin {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #92400e;
+}
+
+.ws-msg__pin i { transform: rotate(35deg); font-size: 10px; }
+
+.ws-msg__thread {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4338ca;
+}
+
+.ws-msg__thread:hover { background: #fff; border-color: var(--ws-line); }
+
+/* ---------- Reaksi & emoji (Fase 3) ---------- */
+
+.ws-reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+.ws-react {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--ws-line);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.ws-react:hover:not(:disabled) { border-color: #a5b4fc; }
+.ws-react:disabled { cursor: default; }
+.ws-react--me { background: var(--ws-primary-soft); border-color: #a5b4fc; }
+.ws-react__n { font-size: 12px; font-weight: 600; color: #334155; font-variant-numeric: tabular-nums; }
+.ws-react--me .ws-react__n { color: #3730a3; }
+
+.ws-msg__actions { display: flex; gap: 2px; }
+
+.ws-react-pick { display: flex; gap: 2px; min-width: 0; padding: 4px; }
+.ws-react-pick__btn,
+.ws-emoji__btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.ws-react-pick__btn:hover,
+.ws-react-pick__btn:focus-visible,
+.ws-emoji__btn:hover,
+.ws-emoji__btn:focus-visible { background: var(--ws-primary-soft); outline: none; }
+
+.ws-emoji {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    z-index: 25;
+    width: 304px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px 8px;
+    background: #fff;
+    border: 1px solid #eef2ff;
+    border-radius: 12px;
+    box-shadow: var(--ws-shadow-lg);
+}
+
+.ws-emoji__grid { display: grid; grid-template-columns: repeat(8, 32px); gap: 2px; margin-bottom: 4px; }
+
+@media (max-width: 400px) {
+    .ws-emoji { width: 272px; }
+    .ws-emoji__grid { grid-template-columns: repeat(7, 32px); }
+}
+
+/* HP: satu kolom — daftar channel ATAU percakapan; panel setinggi layar. */
+@media (max-width: 767px) {
+    .ws-chat {
+        grid-template-columns: minmax(0, 1fr);
+        height: var(--ws-chat-h, calc(100dvh - 108px));
+    }
+    .ws-chat__side { border-right: 0; }
+    .ws-chat__side--away,
+    .ws-chat__main--away { display: none; }
+    .ws-chat__head { padding: 10px 14px; }
+    .ws-chat__scroll { padding: 4px 4px 8px; }
+    .ws-msg { gap: 10px; padding-left: 8px; padding-right: 8px; }
+    .ws-composer { padding: 0 10px 10px; }
+    .ws-composer-note { margin: 0 10px 10px; }
+    .ws-chat__panel { width: 100%; border-left: 0; }
+}
+
+/* ---------- Halaman notifikasi (Fase 1D) ---------- */
+
+.ws-notif-cats {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -4px;
+    padding: 2px 4px;
+}
+
+.ws-notif-cats::-webkit-scrollbar { display: none; }
+.ws-notif-cats .ws-chip { flex-shrink: 0; }
+
+.ws-notif-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 9px 14px;
+    border-radius: 12px;
+    background: var(--ws-primary-soft);
+    border: 1px solid var(--ws-primary-border);
+    color: var(--ws-primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ws-notif-new:hover { background: #e0e7ff; }
+
+.ws-notif-list {
+    border: 1px solid var(--ws-line);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.ws-notif {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding-right: 12px;
+    background: #fff;
+    transition: background .15s ease;
+}
+
+.ws-notif + .ws-notif { border-top: 1px solid var(--ws-line); }
+.ws-notif:hover { background: #f8faff; }
+.ws-notif--unread { background: #f8faff; }
+.ws-notif--unread:hover { background: #eef2ff; }
+
+.ws-notif__link {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 14px 4px 14px 18px;
+}
+
+.ws-notif__link:focus-visible { outline: 2px solid #818cf8; outline-offset: -2px; border-radius: 12px; }
+
+.ws-notif__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.ws-notif__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--ws-faint);
+}
+
+.ws-notif__cat {
+    padding: 0 7px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.ws-notif__mark { margin-top: 14px; opacity: 0; transition: opacity .15s ease; }
+.ws-notif:hover .ws-notif__mark,
+.ws-notif__mark:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+    .ws-notif__mark { opacity: 1; }
+}
+
+.ws-notif__dot {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-top: -3px;
+    border-radius: 999px;
+    background: #4f46e5;
+}
+
+@media (max-width: 640px) {
+    .ws-notif__link { gap: 12px; padding-left: 16px; }
+    .ws-notif__icon { width: 36px; height: 36px; border-radius: 10px; }
+}
+
+/* Kotak dialog menerima fokus saat dibuka (x-ws-dialog); garis fokusnya tidak perlu, isi dialog punya ring sendiri. */
+.ws-modal__box:focus,
+.ws-slideover:focus { outline: none; }
+
+/* Pilihan warna label */
+.ws-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+.ws-color[aria-checked="true"] { box-shadow: 0 0 0 2px var(--ws-text); }
+
+/* Ringkasan tugas di detail intern */
+.ws-it-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: #eef2ff;
+    border-bottom: 1px solid #eef2ff;
+}
+
+.ws-it-stats > div { background: #fff; padding: 10px 14px; }
+.ws-it-stats dt { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ws-muted); }
+.ws-it-stats dd { margin-top: 2px; font-size: 20px; font-weight: 800; color: var(--ws-text); font-variant-numeric: tabular-nums; }
+
+@media (min-width: 640px) {
+    .ws-it-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Nilai pada rekap tugas */
+.ws-recap-score {
+    min-width: 40px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #047857;
+    font-weight: 800;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Rekap tugas per tim (Admin → Monitoring) */
+.ws-recap { width: 100%; font-size: 14px; border-collapse: collapse; }
+.ws-recap th, .ws-recap td { padding: 12px 16px; text-align: left; white-space: nowrap; border-bottom: 1px solid #f1f5ff; }
+.ws-recap thead th { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ws-muted); background: var(--ws-surface-2); }
+.ws-recap td { color: #334155; font-variant-numeric: tabular-nums; }
+.ws-recap tbody tr:last-child th, .ws-recap tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- Status realtime di top bar (Fase 3) ---------- */
+.ws-rt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--ws-line);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.ws-rt__dot { width: 8px; height: 8px; border-radius: 999px; background: #94a3b8; }
+.ws-rt__dot--connected { background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, .2); }
+.ws-rt__dot--connecting { background: #f59e0b; }
+.ws-rt__dot--unavailable { background: #ef4444; }
+
+/* ---------- Pengaturan notifikasi (Fase 3) ---------- */
+
+.ws-ns-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; }
+
+.ws-ns-cols { display: grid; grid-template-columns: 64px 64px; justify-items: center; align-items: center; flex-shrink: 0; }
+.ws-ns-cols > span { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ws-muted); }
+.ws-ns-na { color: var(--ws-muted); }
+
+.ws-switch {
+    position: relative;
+    width: 40px;
+    height: 24px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background .15s ease;
+}
+
+.ws-switch > span {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .25);
+    transition: transform .15s ease;
+}
+
+.ws-switch[aria-checked="true"] { background: var(--ws-primary); }
+.ws-switch[aria-checked="true"] > span { transform: translateX(16px); }
+.ws-switch:focus-visible { outline: 2px solid #818cf8; outline-offset: 2px; }
+
+.ws-savebar {
+    position: sticky;
+    bottom: 16px;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid #c7d2fe;
+    border-radius: 14px;
+    box-shadow: var(--ws-shadow-lg);
+}
+
+@media (max-width: 640px) {
+    .ws-ns-cols { grid-template-columns: 52px 52px; }
+}
+
+/* ---------- Template tugas (Fase 2) ---------- */
+
+.ws-tpl-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 18px 20px;
+    background: var(--ws-surface);
+    border: 1px solid #e8eeff;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(30, 58, 138, 0.05);
+    transition: box-shadow .2s ease, border-color .2s ease;
+}
+
+.ws-tpl-card:hover { border-color: #c7d2fe; box-shadow: var(--ws-shadow); }
+
+.ws-tpl-badge--onboarding { background: #ecfeff; color: #0e7490; border-color: #cffafe; }
+.ws-tpl-badge--team { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+
+/* Kotak centang dengan judul + keterangan (onboarding, salinan terpisah). */
+.ws-tpl-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--ws-line);
+    border-radius: 12px;
+    background: var(--ws-surface-2);
+    cursor: pointer;
+}
+
+.ws-tpl-toggle:has(input:checked) { border-color: #a5b4fc; background: var(--ws-primary-soft); }
+
+.ws-tpl-use {
+    padding: 12px 14px;
+    border: 1px dashed #c7d2fe;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+/* Daftar pilih intern (modal tugaskan) */
+.ws-tpl-pick {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--ws-line);
+    border-radius: 12px;
+}
+
+.ws-tpl-pick--error { border-color: #fca5a5; }
+.ws-tpl-pick > li + li { border-top: 1px solid #f1f5ff; }
+
+.ws-tpl-pick__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.ws-tpl-pick__item:hover { background: #f8faff; }
+
+.ws-tpl-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--ws-line);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.ws-tpl-option--on { border-color: #818cf8; background: var(--ws-primary-soft); }
+
+/* ---------- Widget dashboard mentor/intern (Fase 2) ---------- */
+/* Mengikuti panel dashboard yang sudah ada: putih, radius 16px, border #e8eeff. */
+
+.ws-widget {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e8eeff;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.ws-widget__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #eef2ff;
+}
+
+.ws-widget__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--w-bg, #eef2ff);
+    color: var(--w-c, #2d3ecb);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.ws-widget__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ws-text);
+    margin: 0;
+}
+
+.ws-widget__count {
+    padding: 1px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ws-widget__count--alert { background: #dc2626; color: #fff; }
+
+.ws-widget__more {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4f46e5;
+    white-space: nowrap;
+}
+
+.ws-widget__more:hover { color: #3730a3; }
+
+.ws-widget__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 18px 0;
+}
+
+.ws-widget__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ws-widget__chip--orange { background: #fff7ed; color: #c2410c; }
+.ws-widget__chip--red { background: #fef2f2; color: #b91c1c; }
+
+.ws-widget__body {
+    flex: 1;
+    padding: 8px 10px 12px;
+}
+
+.ws-widget__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    transition: background .15s ease;
+}
+
+a.ws-widget__row:hover,
+li.ws-widget__row:hover { background: #f8faff; }
+
+.ws-widget__body li + li { border-top: 1px solid #f1f5ff; }
+
+.ws-widget__due {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ws-faint);
+    white-space: nowrap;
+}
+
+.ws-widget__due--soon { color: #b45309; }
+.ws-widget__due--overdue { color: #b91c1c; }
+
+.ws-widget__chan-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--ws-primary-soft);
+    color: var(--ws-primary);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.ws-widget__late { padding: 12px 8px; }
+
+.ws-widget__empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 28px 12px;
+    font-size: 13px;
+    color: var(--ws-muted);
+    text-align: center;
+}
+
+.ws-widget__empty > i { color: var(--ws-faint); }
+
+.ws-widget__footnote {
+    padding: 6px 8px 0;
+    font-size: 12px;
+    color: var(--ws-faint);
+}
+
+@media (max-width: 640px) {
+    .ws-widget__head { padding: 12px 14px; flex-wrap: wrap; }
+    .ws-widget__body { padding: 6px 6px 10px; }
+    /* Tenggat pindah ke bawah judul supaya judul tugas tidak terpotong terlalu pendek. */
+    a.ws-widget__row { flex-wrap: wrap; }
+    a.ws-widget__row .ws-widget__due { width: 100%; padding-left: 2px; }
+}
+
+/* ---------- Animasi ---------- */
+
+@keyframes ws-fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ws-anim-1 { animation: ws-fade-up .5s ease both; }
+.ws-anim-2 { animation: ws-fade-up .5s ease .1s both; }
+.ws-anim-3 { animation: ws-fade-up .5s ease .2s both; }
+
+/* Kurangi animasi: animasi masuk, sorotan pesan, skeleton berkedip, dan transisi modal/panel dimatikan. */
+@media (prefers-reduced-motion: reduce) {
+    .ws-anim-1, .ws-anim-2, .ws-anim-3 { animation: none; }
+    .ws-msg--flash { animation: none; background: #e0e7ff; }
+    .ws-page .animate-pulse,
+    .ws-font .animate-pulse { animation: none; }
+    .ws-page *,
+    .ws-font * { transition-duration: 1ms !important; }
+}
+
+@media (max-width: 640px) {
+    .ws-panel { padding: 16px; }
+}
+
+[x-cloak] { display: none !important; }
+
+/* ---------- Tugas lewat deadline: "Belum diselesaikan" + upload dikunci (intern) ---------- */
+.ws-unfinished { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.ws-unfinished__lock { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #b91c1c; }
+.ws-unfinished__lock i { font-size: 9px; }
+
+/* ---------- Kelompok (buatan mentor) ---------- */
+
+.ws-hero-btn--solid { background: #fff; color: #3730a3; border-color: #fff; padding: 8px 14px; }
+.ws-hero-btn--solid:hover { background: #eef2ff; }
+
+.ws-group-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    background: var(--group-color, #4f46e5);
+}
+
+.ws-group-icon--lg { width: 56px; height: 56px; border-radius: 16px; font-size: 19px; box-shadow: 0 0 0 3px rgba(255, 255, 255, .35); }
+
+.ws-group-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+
+/* Kelompok selesai magang: redup, tetap terbaca (kontras teks tidak diturunkan). */
+.ws-card--finished { background: #f8fafc; box-shadow: none; border-color: #e2e8f0; }
+.ws-card--finished .ws-group-icon { filter: grayscale(.65); opacity: .8; }
+
+.ws-callout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.ws-callout__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #fff;
+    color: #b45309;
+}
+
+.ws-chip-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 6px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #fde68a;
+}
+
+.ws-chip-person__action {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.ws-chip-person__action:hover { background: #fde68a; }
+.ws-chip-person__action:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; }
+
+.ws-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.ws-swatch:has(input:focus-visible) { outline: 2px solid #1e1b4b; outline-offset: 2px; }
+
+.ws-tpl-pick__item--disabled { cursor: not-allowed; background: #f8fafc; }
+.ws-tpl-pick__item--disabled:hover { background: #f8fafc; }
+
+.ws-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.ws-pagination__link {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+a.ws-pagination__link:hover { border-color: #a5b4fc; color: #3730a3; }
+a.ws-pagination__link:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+.ws-pagination__link[aria-disabled="true"] { color: #94a3b8; background: #f8fafc; }
+.ws-pagination__link--current { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.ws-pagination__gap { padding: 0 4px; color: #64748b; }
+
+.ws-widget--callout { border-color: #fde68a; background: #fffdf5; }
+
+/* Halaman Anak Bimbingan: kolom kelompok + bilah aksi pilihan */
+.ws-group-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+    padding: 3px 10px 3px 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.ws-group-chip:hover { background: #e2e8f0; }
+
+.ws-selection-bar {
+    position: sticky;
+    bottom: 16px;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: #1e1b4b;
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(30, 27, 75, .3);
+}
+
+/* ---------- Responsif HP & tablet ---------- */
+
+/* Kaki kartu kelompok: aktif menempel di bawah (tinggi kartu sejajar), selesai magang ringkas. */
+.ws-card__foot { margin-top: auto; padding-top: 16px; }
+.ws-card__foot > div { border-top: 1px solid #f1f5f9; padding-top: 14px; margin-top: 4px; }
+.ws-card--finished .ws-card__foot { padding-top: 12px; }
+.ws-card--finished .ws-card__foot > div { padding-top: 10px; }
+
+/* Board: pil navigasi kolom (HP) */
+.ws-board-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.ws-board-nav::-webkit-scrollbar { display: none; }
+
+.ws-board-nav__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #475569;
+    background: rgba(255, 255, 255, .7);
+    border: 1px solid #e0e7ff;
+}
+
+.ws-board-nav__item[aria-current="true"] { background: #fff; color: #3730a3; border-color: #a5b4fc; box-shadow: 0 1px 3px rgba(30, 58, 138, .12); }
+.ws-board-nav__item:focus-visible { outline: 2px solid #818cf8; outline-offset: 1px; }
+
+/* List: filter lanjutan dilipat di HP, selalu tampil mulai tablet */
+@media (max-width: 767px) {
+    .ws-filter-more:not(.is-open) { display: none; }
+}
+
+@media (max-width: 639px) {
+    /* Hero: tombol aksi berbagi lebar */
+    .ws-hero__actions { width: 100%; }
+    .ws-hero__actions > .ws-hero-btn, .ws-hero__actions > div { flex: 1 1 auto; justify-content: center; }
+    .ws-hero__actions > div > .ws-hero-btn { width: 100%; justify-content: center; }
+
+    /* Statistik padat */
+    .ws-stat { padding: 9px 10px 11px; border-radius: 12px; }
+    .ws-stat__label { font-size: 10px; letter-spacing: .03em; line-height: 1.25; }
+    .ws-stat__value { font-size: 1.15rem; margin-top: 2px; }
+
+    /* Tab: 4 tab berbagi lebar, ikon di atas label */
+    #ws-tabbar .ws-tabs { width: 100%; }
+    #ws-tabbar .ws-tab {
+        flex: 1 1 0;
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        align-items: center;
+        column-gap: 4px;
+        row-gap: 2px;
+        padding: 6px 2px;
+        font-size: 11.5px;
+        min-width: 0;
+    }
+    #ws-tabbar .ws-tab > i { grid-row: 1; font-size: 13px; }
+    #ws-tabbar .ws-tab__count { grid-row: 1; font-size: 10px; line-height: 15px; min-width: 16px; padding: 0 4px; }
+    #ws-tabbar .ws-tab__label { grid-row: 2; grid-column: 1 / -1; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+    #ws-tabbar > .ws-btn { width: 100%; justify-content: center; }
+
+    /* Kartu & widget sedikit lebih rapat */
+    .ws-card { padding: 16px; }
+    .ws-widget__head { flex-wrap: wrap; row-gap: 4px; }
+}
+
+/* Tablet: kolom board sedikit lebih ramping supaya ±3 kolom terlihat */
+@media (min-width: 640px) and (max-width: 1023px) {
+    .ws-board { grid-auto-columns: minmax(256px, 1fr); }
+}
