@@ -130,7 +130,7 @@ class ChannelMessageTest extends TestCase
     {
         $response = $this->sendMessage($this->rudy->user, $this->umumGta, 'Halo @Ahmad Fauzi tolong cek')->assertCreated();
 
-        $this->assertSame([$this->ahmad->user_id], $response->json('data.mentions.*.id'));
+        $this->assertSame([$this->ahmad->user_id], $response->json('data.mentions'));
         $this->assertSame(1, $this->notificationCount($this->ahmad->user, MessageMentionNotification::class));
         $this->assertSame(0, $this->notificationCount($this->rudy->user, MessageMentionNotification::class), 'penulis tidak dinotifikasi');
         $this->assertSame(0, $this->notificationCount($this->siti->user, MessageMentionNotification::class));
@@ -375,5 +375,21 @@ class ChannelMessageTest extends TestCase
 
         // pesan itu tidak bisa diedit siapa pun
         $this->actingAs($this->rudy->user)->patchJson("/workspace/messages/{$mentioned}", ['body' => 'x'])->assertForbidden();
+    }
+
+    public function test_body_html_merender_markdown_aman_mention_dan_rujukan_tugas(): void
+    {
+        $taskId = $this->makeTaskForAhmad();
+        $body = "**tebal** cek #T-1 ya @{$this->ahmad->user->name} <script>x</script> @channel";
+
+        $data = $this->sendMessage($this->rudy->user, $this->dmAhmad, $body)->assertCreated()->json('data');
+
+        $this->assertStringContainsString('<strong>tebal</strong>', $data['body_html']);
+        $this->assertStringContainsString('class="ws-task-ref" data-task-id="' . $taskId . '"', $data['body_html']);
+        $this->assertStringContainsString('<span class="ws-mention" data-user-id="' . $this->ahmad->user_id . '">', $data['body_html']);
+        $this->assertStringContainsString('ws-mention--all', $data['body_html']);
+        $this->assertStringNotContainsString('<script>', $data['body_html']);
+        $this->assertTrue($data['mentions_channel']);
+        $this->assertSame(['edit' => true, 'delete' => true, 'pin' => true], $data['can']);
     }
 }

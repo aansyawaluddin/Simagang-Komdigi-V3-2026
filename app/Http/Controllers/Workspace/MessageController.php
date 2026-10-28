@@ -47,7 +47,7 @@ class MessageController extends Controller
 
         $base = fn () => Message::withTrashed()
             ->where('channel_id', $channel->id)
-            ->with(['user:id,name', 'mentions:id,name', 'attachments'])
+            ->with(['user:id,name,role', 'mentions:id,name', 'attachments'])
             ->withCount('replies');
 
         $hasMore = false;
@@ -188,7 +188,7 @@ class MessageController extends Controller
     private function respond(Channel $channel, Message $message, int $status = 200): JsonResponse
     {
         $message = Message::withTrashed()
-            ->with(['user:id,name', 'mentions:id,name', 'attachments'])
+            ->with(['user:id,name,role', 'mentions:id,name', 'attachments'])
             ->withCount('replies')
             ->findOrFail($message->id);
 
@@ -202,8 +202,15 @@ class MessageController extends Controller
     {
         $refs = $this->messages->taskRefs($channel, $messages);
 
+        // Hak per channel dihitung sekali, bukan per pesan.
+        $gate = \Illuminate\Support\Facades\Gate::forUser(request()->user());
+        $canPost = $gate->allows('post', $channel);
+        $canModerate = $gate->allows('moderate', $channel);
+
         foreach ($messages as $message) {
             $message->setAttribute('task_refs', $refs[$message->id] ?? []);
+            $message->setAttribute('can_post', $canPost);
+            $message->setAttribute('can_moderate', $canModerate);
         }
     }
 }
