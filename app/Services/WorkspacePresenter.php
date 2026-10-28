@@ -99,6 +99,23 @@ class WorkspacePresenter
         return $stats + ['late' => $late];
     }
 
+    public function color(int $workspaceId): string
+    {
+        return self::COLORS[$workspaceId % count(self::COLORS)];
+    }
+
+    /** Workspace ringkas untuk widget dan tautan: {id, name, type, color, url}. */
+    public function workspaceMini(Workspace $workspace): array
+    {
+        return [
+            'id' => $workspace->id,
+            'name' => $workspace->name,
+            'type' => 'group',
+            'color' => $this->color($workspace->id),
+            'url' => route('workspace.show', $workspace),
+        ];
+    }
+
     public function workspace(Workspace $workspace, User $viewer): array
     {
         $workspace->loadMissing(['team', 'intern']);
@@ -129,7 +146,7 @@ class WorkspacePresenter
             'type' => 'group',
             'name' => $workspace->name,
             'slug' => $workspace->slug,
-            'color' => self::COLORS[$workspace->id % count(self::COLORS)],
+            'color' => $this->color($workspace->id),
             'description' => $workspace->type === 'intern' ? 'Space pribadi intern dan mentor pembimbing.' : null,
             'team' => ['id' => $workspace->team_id, 'name' => $workspace->team?->name ?? '-'],
             'mentor' => $mentor ? $this->user($users[$mentor->id] ?? null) : ['id' => 0, 'name' => '-', 'role' => 'mentor', 'avatar_url' => null],
@@ -359,16 +376,20 @@ class WorkspacePresenter
     public function template(TaskTemplate $t, User $viewer): array
     {
         $gate = Gate::forUser($viewer);
+        $labelIds = $t->label_ids ?? [];
 
         return [
             'id' => $t->id,
+            'team_id' => $t->team_id,
             'team' => $t->team ? ['id' => $t->team->id, 'name' => $t->team->name] : null,
             'title' => $t->title,
             'description' => $t->description,
             'description_html' => $this->markdown($t->description),
-            'priority' => 'medium',
-            'labels' => [],
-            'due_in_days' => 7,
+            'priority' => $t->priority ?: 'medium',
+            'labels' => $labelIds
+                ? \App\Models\TaskLabel::whereIn('id', $labelIds)->orderBy('name')->get(['id', 'name', 'color'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'color' => $l->color])->all()
+                : [],
+            'due_in_days' => (int) ($t->due_in_days ?? 7),
             'checklist' => collect($t->checklist ?? [])->map(fn ($c) => ['content' => is_array($c) ? ($c['content'] ?? '') : (string) $c])->values()->all(),
             'is_onboarding' => (bool) $t->is_onboarding,
             'creator' => $this->user($t->creator),

@@ -12,11 +12,15 @@ class TaskTemplate extends Model
         'title',
         'description',
         'checklist',
+        'priority',
+        'label_ids',
+        'due_in_days',
         'is_onboarding',
     ];
 
     protected $casts = [
         'checklist' => 'array',
+        'label_ids' => 'array',
         'is_onboarding' => 'boolean',
     ];
 

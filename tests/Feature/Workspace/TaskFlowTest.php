@@ -354,7 +354,7 @@ class TaskFlowTest extends TestCase
         $this->actingAs($this->rudy->user)->postJson("/workspace/tasks/{$id}/template")
             ->assertCreated()
             ->assertJsonPath('data.title', 'Tugas contoh')
-            ->assertJsonPath('data.checklist', ['x', 'y']);
+            ->assertJsonPath('data.checklist', [['content' => 'x'], ['content' => 'y']]);
 
         $this->actingAs($this->ahmad->user)->postJson("/workspace/tasks/{$id}/template")->assertForbidden();
     }

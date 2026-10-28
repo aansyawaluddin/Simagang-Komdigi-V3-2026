@@ -3,6 +3,7 @@
 use App\Http\Controllers\Workspace\AttachmentController;
 use App\Http\Controllers\Workspace\ChannelController;
 use App\Http\Controllers\Workspace\DashboardController;
+use App\Http\Controllers\Workspace\InsightController;
 use App\Http\Controllers\Workspace\LabelController;
 use App\Http\Controllers\Workspace\MessageController;
 use App\Http\Controllers\Workspace\NotificationController;
@@ -24,10 +25,17 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
     // Ringkasan untuk dashboard (intern / mentor / admin)
     Route::get('dashboard', [DashboardController::class, 'summary'])->name('dashboard');
 
+    // Widget dashboard, Monitoring, detail intern, dan rekap tugas (bentuk data frontend)
+    Route::get('summary', [InsightController::class, 'summary'])->name('summary');
+    Route::get('progress', [InsightController::class, 'progress'])->name('progress');
+    Route::get('recap', [InsightController::class, 'recap'])->name('recap');
+    Route::get('interns/{intern}/tasks', [InsightController::class, 'internTasks'])->whereNumber('intern')->name('interns.tasks');
+
     // Template tugas (onboarding dan assign massal)
     Route::get('templates', [TaskTemplateController::class, 'index'])->name('templates.index');
     Route::post('templates', [TaskTemplateController::class, 'store'])->name('templates.store');
     Route::put('templates/{template}', [TaskTemplateController::class, 'update'])->whereNumber('template')->name('templates.update');
+    Route::post('templates/{template}/assign', [TaskTemplateController::class, 'assign'])->whereNumber('template')->name('templates.assign');
     Route::delete('templates/{template}', [TaskTemplateController::class, 'destroy'])->whereNumber('template')->name('templates.destroy');
 
     // Tugas milik intern yang login (dropdown logbook); didaftarkan sebelum tasks/{task}
