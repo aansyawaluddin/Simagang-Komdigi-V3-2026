@@ -61,14 +61,17 @@
         </nav>
 
         <x-workspace.hero class="ws-anim-1 mb-6"
-                          :eyebrow="'Kelompok · ' . $workspace['team']['name']"
+                          :eyebrow="'Kelompok' . ($workspace['team'] && ! ($workspace['is_personal'] ?? false) ? ' · ' . $workspace['team']['name'] : '')"
                           :title="$workspace['name']"
                           :subtitle="$workspace['description'] ?: 'Board tugas dan diskusi kelompok'">
             <x-slot:meta>
                 <span class="inline-flex items-center gap-1.5"><i class="fas fa-chalkboard-user"></i> Mentor: <span title="{{ $mentorNames->implode(', ') }}">{{ $mentorLine ?: $workspace['mentor']['name'] }}</span></span>
                 <span class="opacity-50 hidden sm:inline">·</span>
-                <span class="inline-flex items-center gap-1.5"><i class="fas fa-user-graduate"></i> {{ $internMembers->count() }} anak magang</span>
-                <span class="opacity-50 hidden sm:inline">·</span>
+                {{-- Space pribadi hanya berisi satu intern: jumlah anak magang tidak perlu ditampilkan. --}}
+                @unless ($workspace['is_personal'] ?? false)
+                    <span class="inline-flex items-center gap-1.5"><i class="fas fa-user-graduate"></i> {{ $internMembers->count() }} anak magang</span>
+                    <span class="opacity-50 hidden sm:inline">·</span>
+                @endunless
                 @if ($workspace['status'] === 'finished')
                     <span class="inline-flex items-center gap-1.5"><i class="fas fa-flag-checkered"></i> Selesai {{ $date($workspace['finished_at']) }}</span>
                 @elseif ($workspace['end_date'])

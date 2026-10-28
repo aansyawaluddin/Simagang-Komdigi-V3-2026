@@ -118,7 +118,10 @@ class WorkspacePresenter
 
     public function workspace(Workspace $workspace, User $viewer): array
     {
-        $workspace->loadMissing(['team', 'intern']);
+        $workspace->loadMissing(['team', 'intern.team', 'intern.mentor.team']);
+
+        // Space Intern tidak punya team_id sendiri: pakai tim intern, lalu tim mentornya.
+        $team = $workspace->team ?? $workspace->intern?->team ?? $workspace->intern?->mentor?->team;
 
         $members = DB::table('workspace_members')
             ->join('users', 'users.id', '=', 'workspace_members.user_id')
@@ -151,11 +154,13 @@ class WorkspacePresenter
         return [
             'id' => $workspace->id,
             'type' => 'group',
+            // Space pribadi intern dan mentor pembimbing (bukan workspace tim): tampilan menyembunyikan nama tim.
+            'is_personal' => $workspace->type === 'intern',
             'name' => $workspace->name,
             'slug' => $workspace->slug,
             'color' => $this->color($workspace->id),
             'description' => $workspace->type === 'intern' ? 'Space pribadi intern dan mentor pembimbing.' : null,
-            'team' => ['id' => $workspace->team_id, 'name' => $workspace->team?->name ?? '-'],
+            'team' => $team ? ['id' => $team->id, 'name' => $team->name] : null,
             'mentor' => $mentor ? $this->user($users[$mentor->id] ?? null) : ['id' => 0, 'name' => '-', 'role' => 'mentor', 'avatar_url' => null],
             'status' => $workspace->is_archived ? 'finished' : 'active',
             'created_at' => $this->iso($workspace->created_at),

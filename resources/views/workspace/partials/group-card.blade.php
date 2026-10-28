@@ -21,7 +21,9 @@
     <div class="flex items-start gap-3">
         <span class="ws-group-icon" style="--group-color: {{ $ws['color'] }}" aria-hidden="true">{{ $initials }}</span>
         <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-bold uppercase tracking-[0.12em] ws-text-faint truncate">{{ $ws['team']['name'] }}</p>
+            @if ($ws['team'] && ! ($ws['is_personal'] ?? false))
+                <p class="text-[10px] font-bold uppercase tracking-[0.12em] ws-text-faint truncate">{{ $ws['team']['name'] }}</p>
+            @endif
             <h3 class="font-bold text-gray-800 truncate" title="{{ $ws['name'] }}">{{ $ws['name'] }}</h3>
             <p class="text-xs text-slate-500 truncate">
                 @if ($showMentor)

@@ -147,4 +147,47 @@ class PagesTest extends TestCase
 
         $this->actingAs($this->admin)->get('/workspace')->assertOk()->assertSee('2 anak magang');
     }
+
+    public function test_space_intern_memakai_tim_intern_dan_tanpa_tim_tidak_menampilkan_tanda_strip(): void
+    {
+        $presenter = app(\App\Services\WorkspacePresenter::class);
+
+        // Space tidak punya team_id sendiri: tim diambil dari intern.
+        $this->assertNull($this->spAhmad->team_id);
+        $team = $presenter->workspace($this->spAhmad, $this->rudy->user)['team'];
+        $this->assertSame(['id' => $this->gta->id, 'name' => $this->gta->name], $team);
+
+        // Tanpa tim sama sekali: team null, halaman tetap terbuka dan tidak ada label "-".
+        \DB::table('interns')->where('id', $this->ahmad->id)->update(['team_id' => null]);
+        \DB::table('mentors')->where('id', $this->rudy->id)->update(['team_id' => null]);
+        $this->spAhmad->refresh()->unsetRelations();
+
+        $this->assertNull($presenter->workspace($this->spAhmad, $this->rudy->user)['team']);
+
+        $this->actingAs($this->rudy->user)->get('/workspace')
+            ->assertOk()
+            ->assertDontSee('truncate">-</p>', false);
+        $this->actingAs($this->rudy->user)->get("/workspace/{$this->spAhmad->id}")->assertOk();
+    }
+
+    public function test_space_pribadi_menyembunyikan_nama_tim_dan_jumlah_anak_magang(): void
+    {
+        $presenter = app(\App\Services\WorkspacePresenter::class);
+        $this->assertTrue($presenter->workspace($this->spAhmad, $this->rudy->user)['is_personal']);
+        $this->assertFalse($presenter->workspace($this->wsGta, $this->rudy->user)['is_personal']);
+
+        // Daftar: nama tim hanya tampil di kartu Workspace Tim, bukan di kartu Space.
+        $list = $this->actingAs($this->rudy->user)->get('/workspace')->assertOk()->getContent();
+        $this->assertSame(1, substr_count($list, 'truncate">' . $this->gta->name . '</p>'));
+
+        // Detail Space: tanpa nama tim di eyebrow dan tanpa "anak magang".
+        $space = $this->actingAs($this->rudy->user)->get("/workspace/{$this->spAhmad->id}")->assertOk();
+        $space->assertDontSee('1 anak magang')->assertDontSee('Kelompok · ' . $this->gta->name);
+
+        // Detail Workspace Tim tetap menampilkan keduanya.
+        $this->actingAs($this->rudy->user)->get("/workspace/{$this->wsGta->id}")
+            ->assertOk()
+            ->assertSee('2 anak magang')
+            ->assertSee('Kelompok · ' . $this->gta->name);
+    }
 }
