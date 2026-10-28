@@ -1,0 +1,267 @@
+/*
+ * Laporan akhir — upload berkas & progres (components/report/file-upload.blade.php).
+ * Mandiri (tidak bergantung pada workspace.css). Warna teks ≥ 4,5:1 (WCAG AA).
+ */
+
+[x-cloak] { display: none !important; }
+
+.rpt { position: relative; }
+
+/* ---------- Progres Upload → Review → Disetujui ---------- */
+
+.rpt-steps-wrap { position: relative; margin-bottom: 20px; }
+
+/* Garis di belakang titik: dari tengah langkah 1 sampai tengah langkah 3. */
+.rpt-steps__track {
+    position: absolute;
+    top: 19px;
+    left: 16.66%;
+    right: 16.66%;
+    height: 4px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.rpt-steps__track > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2563eb, #10b981);
+    transition: width .6s ease;
+}
+
+.rpt-steps__track > .rpt-steps__fill--warn { background: linear-gradient(90deg, #2563eb, #f97316); }
+
+.rpt-steps {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rpt-step { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+
+.rpt-step__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: #fff;
+    border: 2px solid #cbd5e1;
+    color: #64748b;
+    font-size: 15px;
+    transition: all .3s ease;
+}
+
+.rpt-step__label { font-size: 14px; font-weight: 700; color: #334155; margin-top: 4px; }
+.rpt-step__hint { font-size: 12px; color: #64748b; }
+
+.rpt-step--current .rpt-step__dot { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; box-shadow: 0 0 0 4px rgba(37, 99, 235, .15); }
+.rpt-step--current .rpt-step__label { color: #1d4ed8; }
+.rpt-step--done .rpt-step__dot { border-color: #10b981; background: #10b981; color: #fff; }
+.rpt-step--warn .rpt-step__dot { border-color: #f97316; background: #fff7ed; color: #c2410c; box-shadow: 0 0 0 4px rgba(249, 115, 22, .15); }
+.rpt-step--warn .rpt-step__hint { color: #c2410c; font-weight: 600; }
+
+/* ---------- Status berkas ---------- */
+
+.rpt-notice {
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+}
+
+.rpt-notice__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #fff;
+    color: #1d4ed8;
+    flex-shrink: 0;
+}
+
+.rpt-notice__title { font-weight: 700; color: #0f172a; }
+.rpt-notice__desc { font-size: 14px; color: #334155; margin-top: 2px; }
+
+.rpt-notice--revision { background: #fff7ed; border-color: #fed7aa; }
+.rpt-notice--revision .rpt-notice__icon { color: #c2410c; }
+.rpt-notice--approved { background: #ecfdf5; border-color: #a7f3d0; }
+.rpt-notice--approved .rpt-notice__icon { color: #047857; }
+.rpt-notice--fresh { background: #ecfdf5; border-color: #6ee7b7; }
+.rpt-notice--fresh .rpt-notice__icon { color: #047857; }
+
+/* ---------- Berkas ---------- */
+
+.rpt-file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.rpt-file--picked { border-color: #6ee7b7; background: #f0fdf4; }
+
+.rpt-file__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* ---------- Placeholder upload ---------- */
+
+.rpt-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 20px;
+    border: 2px dashed #93c5fd;
+    border-radius: 16px;
+    background: #f8fbff;
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.rpt-drop--drag { border-color: #2563eb; background: #eff6ff; }
+.rpt-drop--error { border-color: #fca5a5; background: #fef2f2; }
+
+.rpt-drop__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 10px;
+    border-radius: 16px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 24px;
+}
+
+.rpt-drop__hint {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    max-width: 460px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #475569;
+}
+
+.rpt-drop__hint i { margin-top: 3px; color: #2563eb; }
+
+.rpt-error { margin-top: 8px; font-size: 14px; font-weight: 600; color: #b91c1c; }
+
+/* ---------- Progres upload ---------- */
+
+.rpt-progress { padding: 16px 18px; border: 1px solid #bfdbfe; border-radius: 14px; background: #fff; }
+
+.rpt-progress__track { height: 8px; margin-top: 10px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+
+.rpt-progress__track > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2563eb, #4f46e5);
+    transition: width .15s linear;
+}
+
+.rpt-progress__bar--indeterminate { width: 40%; animation: rpt-indet 1.2s ease-in-out infinite; }
+
+@keyframes rpt-indet {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+
+/* ---------- Tombol ---------- */
+
+.rpt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background .15s ease, color .15s ease;
+}
+
+.rpt-btn--primary { background: #2563eb; color: #fff; }
+.rpt-btn--primary:hover { background: #1d4ed8; color: #fff; }
+.rpt-btn--soft { background: #eff6ff; color: #1d4ed8; }
+.rpt-btn--soft:hover { background: #dbeafe; }
+.rpt-btn--ghost { background: #fff; color: #334155; border: 1px solid #e2e8f0; }
+.rpt-btn--ghost:hover { background: #f8fafc; }
+.rpt-btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* ---------- Lain-lain ---------- */
+
+.rpt-sim {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: #92400e;
+}
+
+.rpt-sim code { padding: 0 4px; border-radius: 4px; background: #fef3c7; }
+
+.rpt-toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 60;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: min(380px, calc(100vw - 32px));
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #a7f3d0;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+    font-size: 14px;
+    color: #0f172a;
+}
+
+@media (max-width: 640px) {
+    .rpt-step__label { font-size: 12px; }
+    .rpt-step__hint { font-size: 11px; }
+    .rpt-drop { padding: 24px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rpt-steps__track > span, .rpt-step__dot, .rpt-progress__track > span { transition: none; }
+    .rpt-progress__bar--indeterminate { animation: none; width: 100%; opacity: .6; }
+}
+
+.rpt-file__actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.rpt-sim code { white-space: nowrap; }
+
+@media (max-width: 640px) {
+    .rpt-notice { padding: 14px; gap: 10px; }
+    .rpt-notice__icon { width: 32px; height: 32px; border-radius: 10px; }
+    .rpt-file__actions { width: 100%; }
+}

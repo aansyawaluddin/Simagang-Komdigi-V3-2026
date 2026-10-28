@@ -743,6 +743,9 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
+    {{-- WORKSPACE: Tugas Saya & Pesan belum dibaca (hanya tampil bila modul Workspace aktif) --}}
+    <x-workspace.dashboard-widgets role="intern" class="anim-2" />
+
     {{-- MAIN GRID --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

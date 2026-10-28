@@ -599,6 +599,9 @@
         {{-- RIGHT: Absensi + Logbook ── --}}
         <div class="lg:col-span-2 space-y-5">
 
+            {{-- Tugas di Workspace (hanya bila modul Workspace aktif) ── --}}
+            <x-workspace.intern-tasks :intern-id="$intern->id" class="anim-4" />
+
             {{-- Riwayat Absensi ── --}}
             <div class="panel anim-4">
                 <div class="section-header">

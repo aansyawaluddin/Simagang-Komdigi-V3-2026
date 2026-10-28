@@ -297,6 +297,9 @@
             </div>
 
             <!-- Filtered Results Table -->
+            {{-- Workspace: rekap tugas per tim --}}
+            <x-workspace.team-recap class="mb-8" />
+
             <div class="panel mb-8">
                 <div class="panel-header px-6 py-4">
                     <div class="flex items-center justify-between">

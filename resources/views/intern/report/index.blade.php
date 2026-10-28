@@ -82,30 +82,15 @@
                     </div>
                 </div>
 
-                {{-- DETAIL BERKAS --}}
+                {{-- BERKAS LAPORAN: progres Upload → Review mentor → Disetujui, status, dan upload/ganti berkas (PDF ≤ 5 MB) --}}
                 <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <i class="fas fa-folder-open text-blue-500 mr-2"></i>
-                    Detail Berkas
+                    <i class="fas fa-file-pdf text-red-500 mr-2"></i>
+                    Berkas Laporan Akhir
                 </h3>
+                <x-report.file-upload :report="$report" />
 
-                <div class="space-y-3">
-
-                    {{-- Laporan --}}
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 bg-red-50 p-4 rounded-xl border-2 border-red-200 hover:border-red-300 transition-all">
-                        <div class="flex flex-col sm:flex-row items-center space-x-3">
-                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-file-pdf text-red-600 text-xl"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-gray-900">Laporan Akhir</p>
-                                <p class="text-sm text-gray-600">{{ $report->file_name }}</p>
-                            </div>
-                        </div>
-                        <a href="{{ route('download', ['path' => $report->file_path]) }}" target="_blank"
-                            class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all shadow-sm">
-                            <i class="fas fa-download mr-2"></i>Download
-                        </a>
-                    </div>
+                {{-- DETAIL BERKAS LAINNYA --}}
+                <div class="space-y-3 mt-8">
 
                     {{-- File Project (support multiple) --}}
                     @php
@@ -197,6 +182,9 @@
                         </div>
                     @endif
                     
+                    {{-- Rekap tugas Workspace (hanya tampilan; hanya bila modul Workspace aktif) --}}
+                    <x-workspace.report-task-recap mode="view" class="mt-4" />
+
                     {{-- Activities (Kegiatan Magang) --}}
                     <div class="mt-4 p-6 bg-green-50 rounded-xl border-2 border-green-200">
                         <h4 class="font-bold text-gray-900 flex items-center mb-3">
@@ -236,8 +224,8 @@
                     @if($report->status !== 'approved' || $report->needs_revision)
                     <button onclick="document.getElementById('uploadForm').classList.toggle('hidden')"
                         class="cta-btn">
-                        <i class="fas fa-upload"></i>
-                        {{ $report->needs_revision ? 'Upload Revisi' : 'Update Laporan' }}
+                        <i class="fas fa-pen-to-square"></i>
+                        Edit detail laporan
                     </button>
                     @endif
                 </div>
@@ -329,7 +317,7 @@
             <div class="bg-blue-600 px-6 py-4">
                 <h2 class="text-xl font-bold text-white flex items-center">
                     <i class="fas fa-edit mr-3"></i>
-                    Update Laporan
+                    Edit Detail Laporan
                 </h2>
             </div>
 
@@ -338,23 +326,10 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>Laporan Saat Ini
-                        </label>
-                        <div class="relative">
-                            <input type="text" id="fileDisplay" value="{{ $report->file_name }}" readonly
-                                class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700 cursor-pointer hover:border-blue-400 transition-all"
-                                onclick="document.getElementById('fileInput').click()">
-                            <input type="file" name="file" id="fileInput" style="display: none;" onchange="updateFileDisplay(this)">
-                            <button type="button" class="absolute right-3 top-3 text-gray-400 hover:text-red-600 text-xl font-bold" onclick="clearFile()">×</button>
-                        </div>
-                        <p class="mt-2 text-sm text-gray-500 flex items-center">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Klik untuk pilih file baru atau biarkan untuk tetap menggunakan file saat ini. 
-                            <a href="{{ route('download', ['path' => $report->file_path]) }}" target="_blank" class="text-blue-600 hover:underline ml-1">Lihat file saat ini</a>
-                        </p>
-                    </div>
+                    <p class="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-900 flex items-start gap-2">
+                        <i class="fas fa-circle-info mt-0.5"></i>
+                        <span>Untuk mengganti berkas laporan (PDF), gunakan bagian <strong>Berkas Laporan Akhir</strong> di atas. Form ini untuk file proyek, link proyek, dan kegiatan.</span>
+                    </p>
 
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -402,6 +377,9 @@
                     </div>
 
                     {{-- Activities (Kegiatan Magang) --}}
+                    {{-- Rekap tugas Workspace (hanya bila modul Workspace aktif) --}}
+                    <x-workspace.report-task-recap :checked="data_get($report, 'include_task_recap', true)" />
+
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             <i class="fas fa-tasks text-green-600 mr-2"></i>Kegiatan Selama Magang (Opsional)
@@ -452,20 +430,10 @@
                     @csrf
 
                     <div class="mb-6">
-                        <label for="file" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>Upload Laporan Akhir
-                        </label>
-                        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx" required
-                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
-                        <p class="mt-2 text-sm text-gray-500 flex items-center">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Format: PDF, DOC, DOCX (Maks: 10MB)
+                        <p class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-file-pdf text-red-500 mr-2"></i>Upload Laporan Akhir <span class="text-red-600">*</span>
                         </p>
-                        @error('file')
-                            <p class="mt-2 text-sm text-red-600 flex items-center">
-                                <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
-                            </p>
-                        @enderror
+                        <x-report.file-upload mode="embedded" />
                     </div>
 
                     <div class="mb-6">
@@ -496,6 +464,9 @@
                             Format: Link dari GitHub, GitHub Pages, Google Drive, YouTube, Canva, Tableau (Opsional, Maks: 3 link)
                         </p>
                     </div>
+
+                    {{-- Rekap tugas Workspace (hanya bila modul Workspace aktif) --}}
+                    <x-workspace.report-task-recap />
 
                     {{-- Activities (Kegiatan Magang) --}}
                     <div class="mb-8">

@@ -97,6 +97,9 @@
                             </div>
                         </div>
 
+                        {{-- Referensi nilai tugas Workspace (hanya bila modul Workspace aktif) --}}
+                        <x-workspace.task-score-reference :intern-id="$selectedIntern?->id" class="mb-6 sm:mb-8" />
+
                         <div class="space-y-4 sm:space-y-6">
                             <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-4 flex items-center">
                                 <i class="fas fa-clipboard-list text-blue-600 mr-2 sm:mr-3"></i>

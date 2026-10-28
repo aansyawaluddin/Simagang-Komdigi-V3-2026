@@ -613,6 +613,9 @@
 
             </div>
 
+            {{-- ── WORKSPACE: Perlu Review & Tugas Terlambat (hanya tampil bila modul Workspace aktif) ── --}}
+            <x-workspace.dashboard-widgets role="mentor" class="a2" />
+
             {{-- ── TWO-COLUMN ROW ── --}}
             <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
