@@ -70,6 +70,8 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
         Route::get('messages', [MessageController::class, 'index'])->name('channels.messages.index');
         Route::post('messages', [MessageController::class, 'store'])->middleware('throttle:workspace-messages')->name('channels.messages.store');
         Route::post('read', [ChannelController::class, 'markRead'])->name('channels.read');
+        Route::patch('/', [ChannelController::class, 'update'])->name('channels.update');
+        Route::patch('mute', [ChannelController::class, 'mute'])->name('channels.mute');
         Route::patch('archive', [ChannelController::class, 'archive'])->name('channels.archive');
     });
 
@@ -77,6 +79,8 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
         Route::patch('/', [MessageController::class, 'update'])->middleware('throttle:workspace-messages')->name('messages.update');
         Route::delete('/', [MessageController::class, 'destroy'])->name('messages.destroy');
         Route::patch('pin', [MessageController::class, 'pin'])->name('messages.pin');
+        Route::get('replies', [MessageController::class, 'replies'])->name('messages.replies');
+        Route::post('reactions', [MessageController::class, 'react'])->name('messages.react');
     });
 
     // Unduh lampiran (storage private, dicek Policy)

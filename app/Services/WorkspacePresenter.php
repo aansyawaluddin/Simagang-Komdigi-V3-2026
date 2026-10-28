@@ -121,7 +121,8 @@ class WorkspacePresenter
             : Intern::where('team_id', $workspace->team_id)->where('is_active', true)->max('end_date');
 
         $channelIds = Channel::where('workspace_id', $workspace->id)->where('is_archived', false)->pluck('id')->all();
-        $unread = array_sum($this->unread->counts($viewer, $channelIds));
+        $muted = DB::table('channel_members')->where('user_id', $viewer->id)->whereIn('channel_id', $channelIds)->where('is_muted', true)->pluck('channel_id')->all();
+        $unread = array_sum($this->unread->counts($viewer, array_values(array_diff($channelIds, $muted))));
 
         return [
             'id' => $workspace->id,
@@ -291,19 +292,40 @@ class WorkspacePresenter
             ->filter(fn (Channel $c) => Gate::forUser($viewer)->allows('view', $c))
             ->values();
 
-        $unread = $this->unread->counts($viewer, $channels->pluck('id')->all());
-        $lastRead = DB::table('channel_members')->where('user_id', $viewer->id)
-            ->whereIn('channel_id', $channels->pluck('id'))->pluck('last_read_message_id', 'channel_id');
-        $memberCounts = DB::table('channel_members')->whereIn('channel_id', $channels->pluck('id'))
+        return $this->channelList($channels, $viewer);
+    }
+
+    /**
+     * Ubah sekumpulan channel menjadi Channel (kontrak FE) dengan query batch:
+     * belum dibaca, penanda baca, jumlah anggota, mute, pesan disematkan, dan anggota DM.
+     *
+     * @param  \Illuminate\Support\Collection<int, Channel>  $channels
+     * @return array<int, array>
+     */
+    public function channelList($channels, User $viewer): array
+    {
+        $ids = $channels->pluck('id');
+
+        $unread = $this->unread->counts($viewer, $ids->all());
+        $mine = DB::table('channel_members')->where('user_id', $viewer->id)->whereIn('channel_id', $ids)->get()->keyBy('channel_id');
+        $memberCounts = DB::table('channel_members')->whereIn('channel_id', $ids)
             ->selectRaw('channel_id, count(*) as total')->groupBy('channel_id')->pluck('total', 'channel_id');
-        $muted = DB::table('channel_members')->where('user_id', $viewer->id)
-            ->whereIn('channel_id', $channels->pluck('id'))->pluck('is_muted', 'channel_id');
+        $pinned = DB::table('messages')->whereIn('channel_id', $ids)->where('is_pinned', true)->whereNull('deleted_at')
+            ->selectRaw('channel_id, count(*) as total')->groupBy('channel_id')->pluck('total', 'channel_id');
+
+        $directIds = $channels->where('type', 'direct')->pluck('id');
+        $directMembers = DB::table('channel_members')->whereIn('channel_id', $directIds)->get()->groupBy('channel_id');
+        $directUsers = User::with(['mentor', 'intern'])->whereIn('id', $directMembers->flatten(1)->pluck('user_id')->unique())->get()->keyBy('id');
 
         return $channels->map(fn (Channel $c) => $this->channel($c, $viewer, [
             'unread' => $unread[$c->id] ?? 0,
-            'last_read' => $lastRead[$c->id] ?? null,
+            'last_read' => $mine[$c->id]->last_read_message_id ?? null,
             'members_count' => $memberCounts[$c->id] ?? 0,
-            'muted' => (bool) ($muted[$c->id] ?? false),
+            'muted' => (bool) ($mine[$c->id]->is_muted ?? false),
+            'pinned_count' => (int) ($pinned[$c->id] ?? 0),
+            'members' => $c->type === 'direct'
+                ? collect($directMembers[$c->id] ?? [])->map(fn ($m) => $this->user($directUsers[$m->user_id] ?? null))->filter()->values()->all()
+                : null,
         ]))->all();
     }
 
@@ -317,11 +339,12 @@ class WorkspacePresenter
             'workspace_id' => $c->workspace_id,
             'name' => $c->name,
             'type' => $c->type,
-            'description' => null,
+            'description' => $c->description,
             'is_private' => $c->is_private,
             'is_archived' => $c->is_archived,
             'members_count' => $global && $c->type === 'announcement' ? null : ($extra['members_count'] ?? null),
-            'members' => null,
+            'members' => $extra['members'] ?? null,
+            'pinned_count' => (int) ($extra['pinned_count'] ?? 0),
             'unread_count' => (int) ($extra['unread'] ?? 0),
             'last_read_message_id' => $extra['last_read'] ?? null,
             'is_muted' => (bool) ($extra['muted'] ?? false),

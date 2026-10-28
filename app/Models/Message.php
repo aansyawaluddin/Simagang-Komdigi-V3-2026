@@ -44,6 +44,11 @@ class Message extends Model
         return $this->hasMany(Message::class, 'parent_id');
     }
 
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
     public function mentions()
     {
         return $this->belongsToMany(User::class, 'message_mentions')->withTimestamps();

@@ -12,6 +12,7 @@ class Channel extends Model
     protected $fillable = [
         'workspace_id',
         'name',
+        'description',
         'type',
         'is_private',
         'is_archived',

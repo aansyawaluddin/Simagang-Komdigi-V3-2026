@@ -79,7 +79,7 @@ class AttachmentService
      * @param  array<int, int>  $ids
      * @return array<int, Attachment>
      */
-    public function claim(Model $attachable, array $ids, User $user, int $workspaceId): array
+    public function claim(Model $attachable, array $ids, User $user, ?int $workspaceId): array
     {
         if (! $ids) {
             return [];
@@ -89,7 +89,8 @@ class AttachmentService
             ->whereIn('id', $ids)
             ->whereNull('attachable_id')
             ->where('user_id', $user->id)
-            ->where('workspace_id', $workspaceId)
+            // Channel global (tanpa workspace) menerima berkas dari workspace mana pun milik pengunggah.
+            ->when($workspaceId !== null, fn ($q) => $q->where('workspace_id', $workspaceId))
             ->get();
 
         foreach ($attachments as $attachment) {

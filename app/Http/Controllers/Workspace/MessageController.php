@@ -6,19 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\MessageResource;
 use App\Models\Channel;
 use App\Models\Message;
+use App\Models\MessageReaction;
 use App\Notifications\AnnouncementNotification;
 use App\Services\AttachmentService;
 use App\Services\MessageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class MessageController extends Controller
 {
+    private const SEARCH_LIMIT = 20;
     private const PAGE_SIZE = 50;
     private const POLL_LIMIT = 200;
 
@@ -26,43 +29,70 @@ class MessageController extends Controller
     {
     }
 
+    /** Query dasar pesan channel: penulis, mention, lampiran, reaksi, dan hitungan balasan. */
+    private function base(Channel $channel)
+    {
+        return Message::withTrashed()
+            ->where('channel_id', $channel->id)
+            ->with(['user:id,name,role', 'mentions:id,name', 'attachments', 'reactions'])
+            ->withCount('replies')
+            ->withMax('replies', 'created_at');
+    }
+
     /**
      * Daftar pesan channel.
      *  - default / ?before=ID : 50 pesan utama terbaru (urut lama ke baru), scroll ke atas dengan before
-     *  - ?after=ID            : polling, semua pesan baru termasuk balasan thread
+     *  - ?after=ID&since=T    : polling, pesan baru termasuk balasan thread di `data`, serta pesan lama
+     *                           yang diedit/dihapus/disematkan/direaksi sejak T (dan induk balasan baru) di `updated`
      *  - ?parent_id=ID        : balasan satu thread
      *  - ?q=kata / ?pinned=1  : pencarian / pesan yang di-pin
+     * `meta.server_time` dipakai klien sebagai `since` pada polling berikutnya.
      */
-    public function index(Request $request, Channel $channel): AnonymousResourceCollection
+    public function index(Request $request, Channel $channel): JsonResponse
     {
         $this->authorize('view', $channel);
 
         $p = $request->validate([
             'after' => ['nullable', 'integer', 'min:0'],
             'before' => ['nullable', 'integer', 'min:1'],
+            'since' => ['nullable', 'date'],
             'parent_id' => ['nullable', 'integer'],
             'q' => ['nullable', 'string', 'max:100'],
             'pinned' => ['nullable', 'boolean'],
         ]);
 
-        $base = fn () => Message::withTrashed()
-            ->where('channel_id', $channel->id)
-            ->with(['user:id,name,role', 'mentions:id,name', 'attachments'])
-            ->withCount('replies');
-
+        $serverTime = now();
         $hasMore = false;
+        $updated = collect();
+        $total = null;
+        $polling = isset($p['after']);
 
-        if (isset($p['after'])) {
-            $messages = $base()->where('id', '>', $p['after'])->orderBy('id')->limit(self::POLL_LIMIT)->get();
+        if ($polling) {
+            $messages = $this->base($channel)->where('id', '>', $p['after'])->orderBy('id')->limit(self::POLL_LIMIT)->get();
+
+            if (! empty($p['since'])) {
+                $since = Carbon::parse($p['since']);
+                $parentIds = $messages->pluck('parent_id')->filter()->unique()->diff($messages->pluck('id'))->values()->all();
+
+                $updated = $this->base($channel)
+                    ->where(fn ($q) => $q
+                        ->where(fn ($old) => $old->where('id', '<=', $p['after'])->where('updated_at', '>=', $since))
+                        ->orWhereIn('id', $parentIds))
+                    ->orderBy('id')
+                    ->get();
+            }
         } elseif (isset($p['parent_id'])) {
-            $messages = $base()->where('parent_id', $p['parent_id'])->orderBy('id')->limit(self::POLL_LIMIT)->get();
+            $messages = $this->base($channel)->where('parent_id', $p['parent_id'])->orderBy('id')->limit(self::POLL_LIMIT)->get();
         } elseif (! empty($p['q'])) {
-            $like = '%' . addcslashes($p['q'], '%_\\') . '%';
-            $messages = $base()->withoutTrashed()->where('body', 'like', $like)->orderByDesc('id')->limit(self::PAGE_SIZE)->get()->reverse()->values();
+            $like = '%' . addcslashes($p['q'], '%_' . chr(92)) . '%';
+            $match = fn () => $this->base($channel)->withoutTrashed()->where('body', 'like', $like);
+
+            $total = $match()->count();
+            $messages = $match()->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get();
         } elseif (! empty($p['pinned'])) {
-            $messages = $base()->withoutTrashed()->where('is_pinned', true)->orderByDesc('id')->limit(self::PAGE_SIZE)->get()->reverse()->values();
+            $messages = $this->base($channel)->withoutTrashed()->where('is_pinned', true)->orderByDesc('id')->limit(self::PAGE_SIZE)->get();
         } else {
-            $page = $base()
+            $page = $this->base($channel)
                 ->whereNull('parent_id')
                 ->when($p['before'] ?? null, fn ($q, $before) => $q->where('id', '<', $before))
                 ->orderByDesc('id')
@@ -73,12 +103,70 @@ class MessageController extends Controller
             $messages = $page->take(self::PAGE_SIZE)->reverse()->values();
         }
 
-        $this->attachTaskRefs($channel, $messages);
+        $this->attachTaskRefs($channel, $messages->concat($updated));
 
-        return MessageResource::collection($messages)->additional(['meta' => [
+        $meta = [
             'has_more' => $hasMore,
+            'has_more_before' => $hasMore,
             'latest_id' => $messages->max('id'),
-        ]]);
+            'server_time' => $serverTime->toIso8601String(),
+        ];
+
+        if ($total !== null) {
+            $meta['total'] = $total;
+        }
+
+        $response = ['data' => MessageResource::collection($messages)->resolve($request)];
+
+        if ($polling) {
+            $response['updated'] = MessageResource::collection($updated)->resolve($request);
+        }
+
+        return response()->json($response + ['meta' => $meta]);
+    }
+
+    /** Balasan satu thread (lama ke baru) beserta pesan induknya. */
+    public function replies(Request $request, Message $message): JsonResponse
+    {
+        abort_if($message->parent_id !== null, 404);
+
+        $channel = $message->channel;
+        $this->authorize('view', $channel);
+
+        $replies = $this->base($channel)->where('parent_id', $message->id)->orderBy('id')->get();
+        $parent = $this->base($channel)->findOrFail($message->id);
+
+        $this->attachTaskRefs($channel, $replies->concat([$parent]));
+
+        return response()->json([
+            'data' => MessageResource::collection($replies)->resolve($request),
+            'parent' => (new MessageResource($parent))->resolve($request),
+        ]);
+    }
+
+    /** Reaksi emoji: menekan emoji yang sama lagi melepasnya. Anggota yang bisa melihat boleh bereaksi. */
+    public function react(Request $request, Message $message): JsonResponse
+    {
+        $channel = $message->channel;
+        $this->authorize('view', $channel);
+
+        abort_if($channel->is_archived || $channel->workspace?->is_archived, 403, 'Channel sudah diarsipkan. Reaksi tidak bisa diubah.');
+
+        $data = $request->validate(['emoji' => ['required', 'string', Rule::in(MessageReaction::ALLOWED)]]);
+        $user = $request->user();
+
+        $existing = MessageReaction::where(['message_id' => $message->id, 'user_id' => $user->id, 'emoji' => $data['emoji']])->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            MessageReaction::create(['message_id' => $message->id, 'user_id' => $user->id, 'emoji' => $data['emoji']]);
+        }
+
+        // Menyentuh pesan supaya polling anggota lain membawanya di `updated`.
+        $message->touch();
+
+        return response()->json(['data' => MessageResource::reactionsFor($message->fresh('reactions'), $user->id)]);
     }
 
     /** Kirim pesan atau balas thread (parent_id). Teks, mention, dan lampiran. */
@@ -87,7 +175,7 @@ class MessageController extends Controller
         $this->authorize('post', $channel);
 
         $data = $request->validate([
-            'body' => ['required_without:files', 'nullable', 'string', 'max:5000'],
+            'body' => ['required_without_all:files,attachment_ids', 'nullable', 'string', 'max:5000'],
             'parent_id' => ['nullable', 'integer', Rule::exists('messages', 'id')
                 ->where('channel_id', $channel->id)
                 ->whereNull('parent_id')
@@ -96,6 +184,8 @@ class MessageController extends Controller
             'mention_ids.*' => ['integer'],
             'files' => ['nullable', 'array', 'max:10'],
             'files.*' => AttachmentController::FILE_RULES,
+            'attachment_ids' => ['nullable', 'array', 'max:10'],
+            'attachment_ids.*' => ['integer'],
         ]);
 
         $body = trim($data['body'] ?? '');
@@ -116,6 +206,8 @@ class MessageController extends Controller
             if ($request->hasFile('files')) {
                 $this->attachments->store($message, $request->file('files'), $user, compressImages: true);
             }
+
+            $this->attachments->claim($message, $data['attachment_ids'] ?? [], $user, $channel->workspace_id);
 
             $this->messages->syncMentions($message, $user, $data['mention_ids'] ?? []);
 
@@ -179,6 +271,10 @@ class MessageController extends Controller
         $this->authorize('pin', $message);
 
         $data = $request->validate(['is_pinned' => ['required', 'boolean']]);
+
+        if ($message->parent_id !== null) {
+            throw ValidationException::withMessages(['is_pinned' => 'Hanya pesan utama yang bisa disematkan.']);
+        }
 
         $message->update(['is_pinned' => $data['is_pinned']]);
 

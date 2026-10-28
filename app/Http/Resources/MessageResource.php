@@ -54,6 +54,10 @@ class MessageResource extends JsonResource
             ])),
             'replies_count' => $this->whenCounted('replies'),
             'reply_count' => $this->whenCounted('replies'),
+            'last_reply_at' => $this->resource->replies_max_created_at
+                ? \Illuminate\Support\Carbon::parse($this->resource->replies_max_created_at)->toIso8601String()
+                : null,
+            'reactions' => $deleted ? [] : $this->whenLoaded('reactions', fn () => self::reactionsFor($this->resource, $viewerId)),
             'can' => [
                 'edit' => ! $deleted && $own && $canPost,
                 'delete' => ! $deleted && ($canModerate || ($own && $canPost)),
@@ -61,6 +65,26 @@ class MessageResource extends JsonResource
             ],
             'task_refs' => $this->resource->task_refs ?? [],
         ];
+    }
+
+    /**
+     * Reaksi dikelompokkan per emoji (urutan reaksi cepat): jumlah dan apakah user ini ikut bereaksi.
+     *
+     * @return array<int, array{emoji: string, count: int, me: bool}>
+     */
+    public static function reactionsFor($message, ?int $viewerId): array
+    {
+        $grouped = $message->reactions->groupBy('emoji');
+
+        return collect(\App\Models\MessageReaction::ALLOWED)
+            ->filter(fn ($emoji) => $grouped->has($emoji))
+            ->map(fn ($emoji) => [
+                'emoji' => $emoji,
+                'count' => $grouped[$emoji]->count(),
+                'me' => $viewerId !== null && $grouped[$emoji]->contains('user_id', $viewerId),
+            ])
+            ->values()
+            ->all();
     }
 
     private function roleOf($user): ?string

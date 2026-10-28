@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\ChannelUnreadService;
+use App\Services\WorkspacePresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class ChannelController extends Controller
 {
-    public function __construct(private ChannelUnreadService $unread)
+    public function __construct(private ChannelUnreadService $unread, private WorkspacePresenter $presenter)
     {
     }
 
@@ -58,22 +59,13 @@ class ChannelController extends Controller
 
         $channels = $channels->values();
 
-        $unread = $this->unread->counts($user, $channels->pluck('id')->all());
-
-        $data = $channels->map(fn (Channel $c) => [
-            'id' => $c->id,
-            'name' => $c->name,
-            'type' => $c->type,
-            'workspace_id' => $c->workspace_id,
-            'workspace_name' => $c->workspace?->name,
-            'is_private' => $c->is_private,
-            'is_archived' => $c->is_archived,
-            'unread_count' => (int) ($unread[$c->id] ?? 0),
-        ]);
+        $data = collect($this->presenter->channelList($channels, $user))
+            ->map(fn (array $c) => $c + ['workspace_name' => $channels->firstWhere('id', $c['id'])?->workspace?->name]);
 
         return response()->json([
             'data' => $data,
-            'meta' => ['total_unread' => $data->sum('unread_count')],
+            // Channel yang dibisukan tidak ikut dihitung ke total.
+            'meta' => ['total_unread' => $data->where('is_muted', false)->sum('unread_count')],
         ]);
     }
 
@@ -83,8 +75,10 @@ class ChannelController extends Controller
         $this->authorize('create', [Channel::class, $workspace]);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:50', 'regex:/^[a-z0-9][a-z0-9\-]*$/',
-                Rule::unique('channels', 'name')->where('workspace_id', $workspace->id)],
+            'name' => ['required', 'string', 'min:2', 'max:40', 'regex:/^[a-z0-9][a-z0-9\-]*$/',
+                // unik di workspace ini, termasuk channel global
+                Rule::unique('channels', 'name')->where(fn ($q) => $q->where('workspace_id', $workspace->id)->orWhereNull('workspace_id'))],
+            'description' => ['nullable', 'string', 'max:255'],
             'is_private' => ['nullable', 'boolean'],
             'member_ids' => ['nullable', 'array', 'max:200'],
             'member_ids.*' => ['integer', 'distinct'],
@@ -98,6 +92,10 @@ class ChannelController extends Controller
 
         $memberIds = $data['member_ids'] ?? $workspaceUserIds;
 
+        if (! empty($data['is_private']) && ! array_diff($memberIds, [$request->user()->id])) {
+            throw ValidationException::withMessages(['member_ids' => 'Channel privat butuh minimal satu anggota selain pembuat.']);
+        }
+
         if (array_diff($memberIds, $workspaceUserIds)) {
             throw ValidationException::withMessages(['member_ids' => 'Ada user yang bukan anggota workspace ini.']);
         }
@@ -106,6 +104,7 @@ class ChannelController extends Controller
             $channel = Channel::create([
                 'workspace_id' => $workspace->id,
                 'name' => $data['name'],
+                'description' => $data['description'] ?? null,
                 'type' => 'topic',
                 'is_private' => $data['is_private'] ?? false,
                 'created_by' => $request->user()->id,
@@ -116,13 +115,45 @@ class ChannelController extends Controller
             return $channel;
         });
 
-        return response()->json(['data' => [
-            'id' => $channel->id,
-            'name' => $channel->name,
-            'type' => $channel->type,
-            'workspace_id' => $channel->workspace_id,
-            'is_private' => $channel->is_private,
-        ]], 201);
+        return response()->json(['data' => $this->presenter->channelList(collect([$channel]), $request->user())[0]], 201);
+    }
+
+    /** Ubah info channel: nama (khusus topik), deskripsi, dan arsipkan/pulihkan (khusus topik). */
+    public function update(Request $request, Channel $channel): JsonResponse
+    {
+        $this->authorize('archive', $channel);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'min:2', 'max:40', 'regex:/^[a-z0-9][a-z0-9\-]*$/',
+                Rule::unique('channels', 'name')->ignore($channel->id)->where(fn ($q) => $q->where('workspace_id', $channel->workspace_id)->orWhereNull('workspace_id'))],
+            'description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'is_archived' => ['sometimes', 'boolean'],
+        ]);
+
+        if ((isset($data['name']) || isset($data['is_archived'])) && $channel->type !== 'topic') {
+            throw ValidationException::withMessages(['channel' => 'Hanya channel topik yang bisa diganti nama atau diarsipkan.']);
+        }
+
+        $channel->update($data);
+
+        return response()->json(['data' => $this->presenter->channelList(collect([$channel->fresh()]), $request->user())[0]]);
+    }
+
+    /** Bisukan atau aktifkan kembali channel untuk user ini (hanya anggota channel). */
+    public function mute(Request $request, Channel $channel): JsonResponse
+    {
+        $this->authorize('view', $channel);
+
+        $data = $request->validate(['is_muted' => ['required', 'boolean']]);
+
+        $updated = DB::table('channel_members')
+            ->where('channel_id', $channel->id)
+            ->where('user_id', $request->user()->id)
+            ->update(['is_muted' => $data['is_muted'], 'updated_at' => now()]);
+
+        abort_if($updated === 0, 403, 'Hanya anggota channel yang bisa membisukannya.');
+
+        return response()->json(['data' => $this->presenter->channelList(collect([$channel]), $request->user())[0]]);
     }
 
     /** Arsipkan channel topik (read-only, pesan tetap tersimpan). */
