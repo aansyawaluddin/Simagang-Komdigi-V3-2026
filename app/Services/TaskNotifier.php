@@ -41,7 +41,7 @@ class TaskNotifier
     {
         $this->send(
             $this->assigneeUsers($task)->reject(fn (User $u) => $u->id === $actor->id),
-            new TaskReviewedNotification($task)
+            new TaskReviewedNotification($task, $actor)
         );
     }
 

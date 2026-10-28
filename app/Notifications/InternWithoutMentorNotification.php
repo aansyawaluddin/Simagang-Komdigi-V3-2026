@@ -7,18 +7,22 @@ use Illuminate\Notifications\Notification;
 
 class InternWithoutMentorNotification extends Notification
 {
-    public function __construct(private Intern $intern)
+    use \App\Notifications\Concerns\RespectsPreferences;
+
+    public function preferenceType(): string
     {
+        return 'intern_without_mentor';
     }
 
-    public function via(object $notifiable): array
+    public function __construct(private Intern $intern)
     {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array
     {
         return [
+            'kind' => $this->preferenceType(),
+            'intern_name' => $this->intern->name,
             'message' => "Intern aktif {$this->intern->name} belum punya mentor",
             'intern_id' => $this->intern->id,
         ];

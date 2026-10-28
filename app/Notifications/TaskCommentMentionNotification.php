@@ -8,18 +8,26 @@ use Illuminate\Notifications\Notification;
 
 class TaskCommentMentionNotification extends Notification
 {
-    public function __construct(private Task $task, private TaskComment $comment)
+    use \App\Notifications\Concerns\RespectsPreferences;
+
+    public function preferenceType(): string
     {
+        return 'mentioned';
     }
 
-    public function via(object $notifiable): array
+    public function __construct(private Task $task, private TaskComment $comment)
     {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array
     {
         return [
+            'kind' => $this->preferenceType(),
+            'actor_id' => $this->comment->user_id,
+            'actor_name' => $this->comment->user?->name,
+            'task_code' => $this->task->code,
+            'task_title' => $this->task->title,
+            'excerpt' => \Illuminate\Support\Str::limit((string) $this->comment->body, 100),
             'message' => "{$this->comment->user?->name} menyebut kamu di komentar {$this->task->code} \"{$this->task->title}\"",
             'task_id' => $this->task->id,
             'workspace_id' => $this->task->workspace_id,

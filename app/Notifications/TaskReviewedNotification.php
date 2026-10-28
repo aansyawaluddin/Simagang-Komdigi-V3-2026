@@ -8,18 +8,25 @@ use Illuminate\Notifications\Notification;
 
 class TaskReviewedNotification extends Notification
 {
-    public function __construct(private Task $task)
+    use \App\Notifications\Concerns\RespectsPreferences;
+
+    public function preferenceType(): string
     {
+        return $this->task->status === \App\Enums\TaskStatus::Done ? 'task_approved' : 'task_revision';
     }
 
-    public function via(object $notifiable): array
+    public function __construct(private Task $task, private ?\App\Models\User $actor = null)
     {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array
     {
         return [
+            'kind' => $this->preferenceType(),
+            'actor_id' => $this->actor?->id,
+            'actor_name' => $this->actor?->name,
+            'task_code' => $this->task->code,
+            'task_title' => $this->task->title,
             'message' => $this->task->status === TaskStatus::Done
                 ? "{$this->task->code} \"{$this->task->title}\" dinyatakan Selesai"
                 : "{$this->task->code} \"{$this->task->title}\" perlu direvisi",
