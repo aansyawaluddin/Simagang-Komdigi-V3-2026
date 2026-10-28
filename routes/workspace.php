@@ -8,6 +8,7 @@ use App\Http\Controllers\Workspace\NotificationController;
 use App\Http\Controllers\Workspace\TaskCommentController;
 use App\Http\Controllers\Workspace\TaskController;
 use App\Http\Controllers\Workspace\TaskTemplateController;
+use App\Http\Controllers\Workspace\WorkspacePageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,6 +16,10 @@ use Illuminate\Support\Facades\Route;
 | pembatasan akses lewat Policy, bukan prefix route per role.
 */
 Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(function () {
+    // Halaman: daftar kelompok dan detail kelompok
+    Route::get('/', [WorkspacePageController::class, 'index'])->name('index');
+    Route::get('{workspace}', [WorkspacePageController::class, 'show'])->whereNumber('workspace')->name('show');
+
     // Ringkasan untuk dashboard (intern / mentor / admin)
     Route::get('dashboard', [DashboardController::class, 'summary'])->name('dashboard');
 
@@ -29,7 +34,7 @@ Route::middleware('auth')->prefix('workspace')->name('workspace.')->group(functi
     Route::post('{workspace}/tasks', [TaskController::class, 'store'])->whereNumber('workspace')->name('tasks.store');
 
     Route::prefix('tasks/{task}')->whereNumber('task')->group(function () {
-        Route::get('/', [TaskController::class, 'show'])->name('tasks.show');
+        Route::get('/', [WorkspacePageController::class, 'task'])->name('tasks.show');
         Route::put('/', [TaskController::class, 'update'])->name('tasks.update');
         Route::delete('/', [TaskController::class, 'destroy'])->name('tasks.destroy');
         Route::patch('status', [TaskController::class, 'updateStatus'])->name('tasks.status');
